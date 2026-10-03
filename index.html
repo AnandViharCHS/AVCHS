@@ -539,7 +539,10 @@ VIEWS.letters = async () => {
 };
 
 /* Documents */
-const DCATS = { share_certificate: T("भाग प्रमाणपत्र", "शेयर प्रमाणपत्र", "Share certificate"), minutes: T("इतिवृत्त", "कार्यवृत्त", "Minutes"), notice: T("सूचना", "सूचना", "Notice"), noc: "NOC", audit: T("लेखापरीक्षण", "ऑडिट", "Audit"), bye_laws: T("उपविधी", "उपनियम", "Bye-laws"), redevelopment: T("पुनर्विकास", "पुनर्विकास", "Redevelopment"), other: T("इतर", "अन्य", "Other") };
+const DCATS = { share_certificate: T("भाग प्रमाणपत्र", "शेयर प्रमाणपत्र", "Share certificate"), minutes: T("इतिवृत्त", "कार्यवृत्त", "Minutes"), notice: T("सूचना", "सूचना", "Notice"), noc: "NOC", audit: T("लेखापरीक्षण", "ऑडिट", "Audit"), bye_laws: T("उपविधी", "उपनियम", "Bye-laws"), redevelopment: T("पुनर्विकास", "पुनर्विकास", "Redevelopment"), election: T("निवडणूक", "चुनाव", "Elections"), electricity_bill: T("वीज बिल", "बिजली बिल", "Electricity bills"), payment_receipt: T("भरणा पावत्या", "भुगतान रसीदें", "Payment receipts"), property_tax: T("मालमत्ता कर", "संपत्ति कर", "Property tax"), accounts: T("हिशोब", "हिसाब", "Accounts"), correspondence: T("पत्रव्यवहार", "पत्राचार", "Correspondence"), other: T("इतर", "अन्य", "Other") };
+const DOC_RE = /\.(pdf|jpe?g|png|xlsx?|docx?)$/i;
+const DOC_ACCEPT = ".pdf,image/*,.xls,.xlsx,.doc,.docx";
+const DCAT_TXT = k => { const d = document.createElement("div"); d.innerHTML = DCATS[k] || k; return (d.querySelector("." + LANG) || d).textContent; };
 const safeName = s => s.normalize("NFKD").replace(/[^\w.\-]+/g, "_").replace(/_+/g, "_").slice(-120);
 VIEWS.docs = async () => {
   const v = $("#view"); const admin = isAdmin();
@@ -547,22 +550,33 @@ VIEWS.docs = async () => {
     ${admin ? `<div class="panel" style="background:var(--sage-soft)">
       <h3>${T("कागदपत्र अपलोड", "दस्तावेज़ अपलोड", "Upload a document")}</h3>
       <div class="grid2">
-        <label>${T("प्रकार", "प्रकार", "Category")}<select id="uCat">${Object.keys(DCATS).map(k => `<option value="${k}">${k}</option>`).join("")}</select></label>
+        <label>${T("प्रकार", "प्रकार", "Category")}<select id="uCat">${Object.keys(DCATS).map(k => `<option value="${k}">${DCAT_TXT(k)}</option>`).join("")}</select></label>
         <label>${T("कोणाला दिसेल", "किसे दिखेगा", "Visible to")}<select id="uVis"><option value="members">${L("सर्व सभासद", "सभी सदस्य", "All members")}</option><option value="flat">${L("फक्त त्या सदनिकेला", "केवल उस फ्लैट को", "That flat only")}</option><option value="admins">${L("फक्त समिती", "केवल समिति", "Committee only")}</option></select></label>
         <label>${T("सदनिका (आवश्यक असल्यास)", "फ्लैट (आवश्यक हो तो)", "Flat (if for one flat)")}<input id="uFlat" type="number" min="1" max="30"></label>
         <label>${T("शीर्षक", "शीर्षक", "Title")}<input id="uTitle"></label>
       </div>
-      <label>${T("फाइल (PDF/फोटो, कमाल 20 MB)", "फ़ाइल (PDF/फोटो, अधिकतम 20 MB)", "File (PDF/photo, max 20 MB)")}<input type="file" id="uFile" accept=".pdf,image/*"></label>
+      <label>${T("फाइल (PDF / फोटो / Excel / Word, कमाल 20 MB)", "फ़ाइल (PDF / फोटो / Excel / Word, अधिकतम 20 MB)", "File (PDF / photo / Excel / Word, max 20 MB)")}<input type="file" id="uFile" accept="${DOC_ACCEPT}"></label>
       <div class="row"><button class="btn ok" type="button" id="uGo">${T("अपलोड करा", "अपलोड करें", "Upload")}</button></div>
+      <hr style="border:0;border-top:1px solid var(--line);width:100%">
+      <h3>${T("संपूर्ण फोल्डर अपलोड करा (वीज बिले, पावत्या, निवडणूक इ.)", "पूरा फ़ोल्डर अपलोड करें (बिजली बिल, रसीदें, चुनाव आदि)", "Upload a whole folder (electricity bills, receipts, elections…)")}</h3>
+      <div class="grid2">
+        <label>${T("प्रकार", "प्रकार", "Category")}<select id="fCat">${Object.keys(DCATS).filter(k => k !== "share_certificate").map(k => `<option value="${k}">${DCAT_TXT(k)}</option>`).join("")}</select></label>
+        <label>${T("कोणाला दिसेल", "किसे दिखेगा", "Visible to")}<select id="fVis"><option value="members">${L("सर्व सभासद", "सभी सदस्य", "All members")}</option><option value="admins">${L("फक्त समिती", "केवल समिति", "Committee only")}</option></select></label>
+      </div>
+      <p class="small muted">${T("फोल्डरमधील PDF, फोटो, Excel व Word फाइल्स अपलोड होतील; उप-फोल्डरचे नाव (उदा. मीटर क्रमांक) शीर्षकात येईल.", "फ़ोल्डर की PDF, फोटो, Excel व Word फ़ाइलें अपलोड होंगी; उप-फ़ोल्डर का नाम (जैसे मीटर नंबर) शीर्षक में आएगा।", "PDF, photo, Excel and Word files in the folder are uploaded; sub-folder names (e.g. meter number) go into the title.")}</p>
+      <input type="file" id="fDir" webkitdirectory multiple aria-label="Folder">
+      <div id="fProg" class="small"></div>
       <hr style="border:0;border-top:1px solid var(--line);width:100%">
       <h3>${T("सर्व भाग प्रमाणपत्रे एकदम अपलोड करा (संगणकावरून)", "सभी शेयर प्रमाणपत्र एक साथ अपलोड करें (कंप्यूटर से)", "Bulk upload share certificates (from a computer)")}</h3>
       <p class="small muted">${T("D:\\AVCHS_Records\\02_Members\\Flat_wise Cetificates हे फोल्डर निवडा. प्रत्येक 'Room No.X' फोल्डरमधील PDF त्या सदनिकेशी जोडली जाईल व फक्त त्या सदनिकेला दिसेल.", "D:\\AVCHS_Records\\02_Members\\Flat_wise Cetificates फ़ोल्डर चुनें। हर 'Room No.X' फ़ोल्डर की PDF उस फ्लैट से जुड़ेगी और केवल उसी फ्लैट को दिखेगी।", "Choose the folder D:\\AVCHS_Records\\02_Members\\Flat_wise Cetificates. PDFs in each 'Room No.X' folder are linked to that flat and visible only to that flat.")}</p>
       <input type="file" id="uDir" webkitdirectory multiple aria-label="Folder">
       <div id="uProg" class="small"></div>
     </div>` : ""}
+    <div class="row"><label class="small" style="display:flex;gap:.5rem;align-items:center">${T("प्रकार", "प्रकार", "Category")}<select id="dFilter" style="width:auto"><option value="">${L("सर्व", "सभी", "All")}</option>${Object.keys(DCATS).map(k => `<option value="${k}">${DCAT_TXT(k)}</option>`).join("")}</select></label></div>
     <div id="dList" class="muted">…</div>`;
   const load = async () => {
-    const { data, error } = await sb.from("documents").select("*").order("flat_no", { nullsFirst: true }).order("uploaded_at", { ascending: false });
+    let q = sb.from("documents").select("*"); if ($("#dFilter").value) q = q.eq("category", $("#dFilter").value);
+    const { data, error } = await q.order("category").order("flat_no", { nullsFirst: true }).order("title");
     if (error) { $("#dList").textContent = errText(error); return; }
     $("#dList").className = "";
     $("#dList").innerHTML = data.length ? `<div class="tablebox"><table><thead><tr><th>${T("सदनिका", "फ्लैट", "Flat")}</th><th>${T("प्रकार", "प्रकार", "Category")}</th><th>${T("शीर्षक", "शीर्षक", "Title")}</th><th></th></tr></thead><tbody>${data.map(d => `<tr>
@@ -578,9 +592,10 @@ VIEWS.docs = async () => {
       await sb.storage.from("society-docs").remove([d.dataset.path]);
       const { error } = await sb.from("documents").delete().eq("id", d.dataset.deldoc); if (error) return toast(errText(error)); load(); });
   };
+  $("#dFilter").onchange = () => load();
   if (admin) {
     const putOne = async (file, path, row) => {
-      const up = await sb.storage.from("society-docs").upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
+      const up = await sb.storage.from("society-docs").upload(path, file, { upsert: true, contentType: file.type || (/\.xlsx$/i.test(file.name) ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : /\.docx$/i.test(file.name) ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "application/pdf") });
       if (up.error) throw up.error;
       const ins = await sb.from("documents").upsert({ ...row, storage_path: path }, { onConflict: "storage_path" });
       if (ins.error) throw ins.error;
@@ -593,6 +608,19 @@ VIEWS.docs = async () => {
       const folder = vis === "flat" ? `flats/${flat}` : vis === "members" ? "members" : "admins";
       try { await putOne(f, `${folder}/${Date.now()}_${safeName(f.name)}`, { flat_no: flat, category: $("#uCat").value, title: $("#uTitle").value.trim() || f.name, visibility: vis });
         toast(L("अपलोड झाले.", "अपलोड हुआ।", "Uploaded.")); load(); } catch (e) { toast(errText(e)); }
+    };
+    $("#fDir").onchange = async e => {
+      const cat = $("#fCat").value, vis = $("#fVis").value;
+      const files = [...e.target.files].filter(f => DOC_RE.test(f.name) && !/^~\$/.test(f.name));
+      const p = $("#fProg"); let ok = 0, bad = 0, big = 0;
+      for (const [i, f] of files.entries()) {
+        const rel = (f.webkitRelativePath || f.name).split("/").slice(1).join(" / ") || f.name;
+        p.textContent = `${i + 1}/${files.length} · ${rel}`;
+        if (f.size > 20 * 1024 * 1024) { big++; continue; }
+        try { await putOne(f, `${vis}/${cat}/${safeName(rel.replace(/ \/ /g, "__"))}`, { flat_no: null, category: cat, title: rel.replace(/\.[^.]+$/, ""), visibility: vis }); ok++; } catch (er) { bad++; console.warn(f.name, er); }
+      }
+      p.textContent = `${L("पूर्ण", "पूर्ण", "Done")}: ${ok} ${L("अपलोड", "अपलोड", "uploaded")}${bad ? `, ${bad} ${L("अयशस्वी", "विफल", "failed")}` : ""}${big ? `, ${big} ${L("20 MB पेक्षा मोठ्या फाइल्स वगळल्या", "20 MB से बड़ी फ़ाइलें छोड़ी गईं", "skipped (over 20 MB)")}` : ""}.`;
+      load();
     };
     $("#uDir").onchange = async e => {
       const files = [...e.target.files].filter(f => !/desktop\.ini$|^~\$/i.test(f.name));
