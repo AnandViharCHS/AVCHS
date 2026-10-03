@@ -551,8 +551,9 @@ VIEWS.letters = async () => {
 
 /* Documents */
 const DCATS = { share_certificate: T("भाग प्रमाणपत्र", "शेयर प्रमाणपत्र", "Share certificate"), minutes: T("इतिवृत्त", "कार्यवृत्त", "Minutes"), notice: T("सूचना", "सूचना", "Notice"), noc: "NOC", audit: T("लेखापरीक्षण", "ऑडिट", "Audit"), bye_laws: T("उपविधी", "उपनियम", "Bye-laws"), redevelopment: T("पुनर्विकास", "पुनर्विकास", "Redevelopment"), election: T("निवडणूक", "चुनाव", "Elections"), electricity_bill: T("वीज बिल", "बिजली बिल", "Electricity bills"), payment_receipt: T("भरणा पावत्या", "भुगतान रसीदें", "Payment receipts"), property_tax: T("मालमत्ता कर", "संपत्ति कर", "Property tax"), accounts: T("हिशोब", "हिसाब", "Accounts"), correspondence: T("पत्रव्यवहार", "पत्राचार", "Correspondence"), other: T("इतर", "अन्य", "Other") };
-const DOC_RE = /\.(pdf|jpe?g|png|xlsx?|docx?)$/i;
-const DOC_ACCEPT = ".pdf,image/*,.xls,.xlsx,.doc,.docx";
+const DOC_RE = /\.(pdf|jpe?g|png|xlsx?|docx?|html?)$/i;
+const DOC_ACCEPT = ".pdf,image/*,.xls,.xlsx,.doc,.docx,.html,.htm";
+const MAXB = 50 * 1024 * 1024;
 const DCAT_TXT = k => { const d = document.createElement("div"); d.innerHTML = DCATS[k] || k; return (d.querySelector("." + LANG) || d).textContent; };
 const safeName = s => s.normalize("NFKD").replace(/[^\w.\-]+/g, "_").replace(/_+/g, "_").slice(-120);
 VIEWS.docs = async () => {
@@ -566,7 +567,7 @@ VIEWS.docs = async () => {
         <label>${T("सदनिका (आवश्यक असल्यास)", "फ्लैट (आवश्यक हो तो)", "Flat (if for one flat)")}<input id="uFlat" type="number" min="1" max="30"></label>
         <label>${T("शीर्षक", "शीर्षक", "Title")}<input id="uTitle"></label>
       </div>
-      <label>${T("फाइल (PDF / फोटो / Excel / Word, कमाल 20 MB)", "फ़ाइल (PDF / फोटो / Excel / Word, अधिकतम 20 MB)", "File (PDF / photo / Excel / Word, max 20 MB)")}<input type="file" id="uFile" accept="${DOC_ACCEPT}"></label>
+      <label>${T("फाइल (PDF / फोटो / Excel / Word, कमाल 50 MB)", "फ़ाइल (PDF / फोटो / Excel / Word, अधिकतम 50 MB)", "File (PDF / photo / Excel / Word, max 50 MB)")}<input type="file" id="uFile" accept="${DOC_ACCEPT}"></label>
       <div class="row"><button class="btn ok" type="button" id="uGo">${T("अपलोड करा", "अपलोड करें", "Upload")}</button></div>
       <hr style="border:0;border-top:1px solid var(--line);width:100%">
       <h3>${T("संपूर्ण फोल्डर अपलोड करा (वीज बिले, पावत्या, निवडणूक इ.)", "पूरा फ़ोल्डर अपलोड करें (बिजली बिल, रसीदें, चुनाव आदि)", "Upload a whole folder (electricity bills, receipts, elections…)")}</h3>
@@ -597,8 +598,7 @@ VIEWS.docs = async () => {
   };
   $("#dList").onclick = async e => {
     const o = e.target.closest("[data-open]"), d = e.target.closest("[data-deldoc]");
-    if (o) { const w = window.open("", "_blank"); const { data, error } = await sb.storage.from("society-docs").createSignedUrl(o.dataset.open, 300);
-      if (error) { if (w) w.close(); return toast(errText(error)); } if (w) w.location = data.signedUrl; else location.href = data.signedUrl; }
+    if (o) openStored(o.dataset.open);
     if (d) confirmInline(d, async () => {
       await sb.storage.from("society-docs").remove([d.dataset.path]);
       const { error } = await sb.from("documents").delete().eq("id", d.dataset.deldoc); if (error) return toast(errText(error)); load(); });
@@ -606,14 +606,14 @@ VIEWS.docs = async () => {
   $("#dFilter").onchange = () => load();
   if (admin) {
     const putOne = async (file, path, row) => {
-      const up = await sb.storage.from("society-docs").upload(path, file, { upsert: true, contentType: file.type || (/\.xlsx$/i.test(file.name) ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : /\.docx$/i.test(file.name) ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "application/pdf") });
+      const up = await sb.storage.from("society-docs").upload(path, file, { upsert: true, contentType: /\.html?$/i.test(file.name) ? "text/html" : file.type || (/\.xlsx$/i.test(file.name) ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : /\.docx$/i.test(file.name) ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "application/pdf") });
       if (up.error) throw up.error;
       const ins = await sb.from("documents").upsert({ ...row, storage_path: path }, { onConflict: "storage_path" });
       if (ins.error) throw ins.error;
     };
     $("#uGo").onclick = async () => {
       const f = $("#uFile").files[0]; if (!f) return toast(L("फाइल निवडा.", "फ़ाइल चुनें।", "Choose a file."));
-      if (f.size > 20 * 1024 * 1024) return toast(L("फाइल 20 MB पेक्षा मोठी आहे.", "फ़ाइल 20 MB से बड़ी है।", "File is larger than 20 MB."));
+      if (f.size > MAXB) return toast(L("फाइल 50 MB पेक्षा मोठी आहे.", "फ़ाइल 50 MB से बड़ी है।", "File is larger than 50 MB."));
       const vis = $("#uVis").value, flat = $("#uFlat").value ? +$("#uFlat").value : null;
       if (vis === "flat" && !flat) return toast(L("सदनिका क्रमांक टाका.", "फ्लैट नंबर डालें।", "Enter the flat number."));
       const folder = vis === "flat" ? `flats/${flat}` : vis === "members" ? "members" : "admins";
@@ -627,10 +627,10 @@ VIEWS.docs = async () => {
       for (const [i, f] of files.entries()) {
         const rel = (f.webkitRelativePath || f.name).split("/").slice(1).join(" / ") || f.name;
         p.textContent = `${i + 1}/${files.length} · ${rel}`;
-        if (f.size > 20 * 1024 * 1024) { big++; continue; }
+        if (f.size > MAXB) { big++; continue; }
         try { await putOne(f, `${vis}/${cat}/${safeName(rel.replace(/ \/ /g, "__"))}`, { flat_no: null, category: cat, title: rel.replace(/\.[^.]+$/, ""), visibility: vis }); ok++; } catch (er) { bad++; console.warn(f.name, er); }
       }
-      p.textContent = `${L("पूर्ण", "पूर्ण", "Done")}: ${ok} ${L("अपलोड", "अपलोड", "uploaded")}${bad ? `, ${bad} ${L("अयशस्वी", "विफल", "failed")}` : ""}${big ? `, ${big} ${L("20 MB पेक्षा मोठ्या फाइल्स वगळल्या", "20 MB से बड़ी फ़ाइलें छोड़ी गईं", "skipped (over 20 MB)")}` : ""}.`;
+      p.textContent = `${L("पूर्ण", "पूर्ण", "Done")}: ${ok} ${L("अपलोड", "अपलोड", "uploaded")}${bad ? `, ${bad} ${L("अयशस्वी", "विफल", "failed")}` : ""}${big ? `, ${big} ${L("50 MB पेक्षा मोठ्या फाइल्स वगळल्या", "50 MB से बड़ी फ़ाइलें छोड़ी गईं", "skipped (over 50 MB)")}` : ""}.`;
       load();
     };
     $("#uDir").onchange = async e => {
@@ -646,7 +646,7 @@ VIEWS.docs = async () => {
       const p = $("#uProg"); let ok = 0, bad = 0;
       for (const [i, [n, f]] of jobs.entries()) {
         p.textContent = `${i + 1}/${jobs.length} · ${L("सदनिका", "फ्लैट", "Flat")} ${n} · ${f.name}`;
-        if (f.size > 20 * 1024 * 1024) { bad++; continue; }
+        if (f.size > MAXB) { bad++; continue; }
         try { await putOne(f, `flats/${n}/${safeName(f.name)}`, { flat_no: n, category: "share_certificate", title: f.name.replace(/\.[^.]+$/, ""), visibility: "flat" }); ok++; } catch (er) { bad++; console.warn(f.name, er); }
       }
       p.textContent = `${L("पूर्ण", "पूर्ण", "Done")}: ${ok} ${L("अपलोड", "अपलोड", "uploaded")}${bad ? `, ${bad} ${L("अयशस्वी", "विफल", "failed")}` : ""}.`;
@@ -853,6 +853,21 @@ VIEWS.logins = async () => {
 };
 
 
+
+async function openStored(path) {
+  const w = window.open("", "_blank");
+  if (/\.html?$/i.test(path)) {
+    if (w) w.document.write(`<p style="font:16px sans-serif;padding:2rem">${L("उघडत आहे… (मोठी फाइल, थोडा वेळ लागेल)", "खुल रहा है… (बड़ी फ़ाइल, थोड़ा समय लगेगा)", "Opening… (large file, please wait)")}</p>`);
+    const { data, error } = await sb.storage.from("society-docs").download(path);
+    if (error) { if (w) w.close(); return toast(errText(error)); }
+    const url = URL.createObjectURL(new Blob([await data.arrayBuffer()], { type: "text/html" }));
+    if (w) w.location = url; else location.href = url;
+    return;
+  }
+  const { data, error } = await sb.storage.from("society-docs").createSignedUrl(path, 300);
+  if (error) { if (w) w.close(); return toast(errText(error)); }
+  if (w) w.location = data.signedUrl; else location.href = data.signedUrl;
+}
 /* Bills */
 const BTYPES = { electricity: T("वीज बिल", "बिजली बिल", "Electricity"), water: T("पाणी बिल", "पानी बिल", "Water"), property_tax: T("मालमत्ता कर", "संपत्ति कर", "Property tax") };
 let BTYPE = "electricity";
@@ -861,9 +876,17 @@ VIEWS.bills = async () => {
   const v = $("#view"); const admin = isAdmin();
   v.innerHTML = `<div class="sechead"><h2>${T("बिले व भरणा", "बिल व भुगतान", "Bills & payments")}</h2>${admin ? `<button class="btn" type="button" id="bNew">${T("बिल जोडा", "बिल जोड़ें", "Add bill")}</button>` : ""}</div>
     <div class="subtabs" role="group">${Object.keys(BTYPES).map(k => `<button type="button" data-bt="${k}" aria-pressed="${k === BTYPE}">${BTYPES[k]}</button>`).join("")}</div>
-    <div id="bForm"></div><div id="bBody" class="muted">…</div>
+    <div id="bDash"></div><div id="bForm"></div><div id="bBody" class="muted">…</div>
     <p class="small muted">${T("बिलांच्या व पावत्यांच्या PDF प्रती: कागदपत्रे → वीज बिल / भरणा पावत्या.", "बिलों व रसीदों की PDF: दस्तावेज़ → बिजली बिल / भुगतान रसीदें।", "PDF copies of bills and receipts: Documents → Electricity bills / Payment receipts.")}</p>`;
   v.querySelector(".subtabs").onclick = e => { const b = e.target.closest("[data-bt]"); if (b) { BTYPE = b.dataset.bt; VIEWS.bills(); } };
+  if (BTYPE === "electricity") {
+    sb.from("documents").select("storage_path,title,uploaded_at").eq("category", "electricity_bill").ilike("storage_path", "%.htm%").order("uploaded_at", { ascending: false }).limit(1).then(({ data: d }) => {
+      const box = $("#bDash"); if (!box) return;
+      if (d && d.length) { box.innerHTML = `<div class="panel" style="background:var(--plum-soft)"><div class="row" style="justify-content:space-between"><div><b>${T("संपूर्ण महावितरण बिलिंग डॅशबोर्ड", "पूरा महावितरण बिलिंग डैशबोर्ड", "Full MahaDiscom billing dashboard")}</b><br><span class="small muted">${esc(d[0].title)} · ${fmtDate(d[0].uploaded_at)}</span></div><button class="btn" type="button" id="bDashOpen">${T("डॅशबोर्ड उघडा", "डैशबोर्ड खोलें", "Open full electricity dashboard")}</button></div><p class="small muted">${T("सर्व बिले, पावत्या व मीटर फोटो असलेली मूळ फाइल नवीन टॅबमध्ये उघडेल (28 MB).", "सभी बिल, रसीदें व मीटर फोटो वाली मूल फ़ाइल नए टैब में खुलेगी (28 MB)।", "Opens the original file with all bills, receipts and meter photos in a new tab (about 28 MB).")}</p></div>`;
+        $("#bDashOpen").onclick = () => openStored(d[0].storage_path); }
+      else if (isAdmin()) box.innerHTML = `<p class="small muted">${T("डॅशबोर्ड जोडण्यासाठी: कागदपत्रे → कागदपत्र अपलोड → प्रकार 'वीज बिल' → HTML फाइल निवडा.", "डैशबोर्ड जोड़ने हेतु: दस्तावेज़ → दस्तावेज़ अपलोड → प्रकार 'बिजली बिल' → HTML फ़ाइल चुनें।", "To add the dashboard: Documents → Upload a document → Category 'Electricity bills' → choose the HTML file.")}</p>`;
+    });
+  }
   const { data, error } = await sb.from("bills").select("*").eq("bill_type", BTYPE).order("account_no").order("bill_month", { ascending: false, nullsFirst: false }).order("paid_date", { ascending: false });
   if (error) { $("#bBody").textContent = errText(error); return; }
   const accts = [...new Set(data.map(r => r.account_no))];
