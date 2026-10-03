@@ -108,6 +108,16 @@ td.r{text-align:right}
 .act.DELETE{background:var(--rose-soft);color:var(--rose)}
 .act.LOGIN,.act.PASSWORD_CHANGED,.act.PASSWORD_RESET{background:var(--ochre-soft);color:var(--ochre)}
 
+.subtabs{display:flex;gap:.4rem;flex-wrap:wrap}
+.subtabs button{font:inherit;font-size:.95rem;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:20px;padding:.3rem .9rem;cursor:pointer}
+.subtabs button[aria-pressed="true"]{background:var(--plum);border-color:var(--plum);color:var(--surface)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:.5rem}
+.kpis div{background:var(--plum-soft);border-radius:6px;padding:.55rem .75rem;display:grid}
+.kpis small{color:var(--muted);font-size:.78rem}.kpis b{color:var(--plum);font-size:1.1rem;font-variant-numeric:tabular-nums}
+.bars{display:flex;align-items:flex-end;gap:4px;height:90px;padding-top:.5rem}
+.bars div{flex:1;background:var(--plum);opacity:.8;border-radius:2px 2px 0 0;min-width:6px;position:relative}
+.bars div:hover{opacity:1}
+.barlbl{display:flex;gap:4px;font-size:.65rem;color:var(--muted)}.barlbl span{flex:1;text-align:center;min-width:6px;overflow:hidden}
 .toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:.55rem 1rem;border-radius:6px;font-size:.95rem;z-index:30;max-width:calc(100% - 32px)}
 
 /* NOC letter */
@@ -283,6 +293,7 @@ function tabsFor() {
     { id: "noc", c: "var(--teal)", label: T("ना-हरकत प्रमाणपत्र", "अनापत्ति प्रमाणपत्र", "NOC requests") },
     { id: "meetings", c: "var(--indigo)", label: T("सभा व ठराव", "सभा व प्रस्ताव", "Meetings") },
     { id: "docs", c: "var(--sage)", label: T("कागदपत्रे", "दस्तावेज़", "Documents") },
+    { id: "bills", c: "var(--plum)", label: T("बिले", "बिल", "Bills") },
   ];
   if (isAdmin()) {
     t.push({ id: "flats", c: "var(--rose)", label: T("सदनिका नोंदवही", "फ्लैट रजिस्टर", "Flat register") });
@@ -792,7 +803,7 @@ VIEWS.log = async () => {
     const { data, error } = await q;
     if (error) { $("#lg").textContent = errText(error); return; }
     $("#lg").className = "tablebox";
-    const name = { flats: L("सदनिका", "फ्लैट", "Flat"), notices: L("सूचना", "सूचना", "Notice"), noc_requests: "NOC", profiles: L("लॉगिन", "लॉगिन", "Login") };
+    const name = { bills: L("बिल", "बिल", "Bill"), flats: L("सदनिका", "फ्लैट", "Flat"), notices: L("सूचना", "सूचना", "Notice"), noc_requests: "NOC", profiles: L("लॉगिन", "लॉगिन", "Login") };
     $("#lg").innerHTML = `<table><thead><tr><th>${T("वेळ", "समय", "When")}</th><th>${T("कोणी", "किसने", "Who")}</th><th>${T("कृती", "कार्य", "Action")}</th><th>${T("काय", "क्या", "What")}</th><th>${T("बदल", "बदलाव", "Changes")}</th></tr></thead><tbody>${data.map(r => `<tr>
       <td class="num small">${fmtDT(r.at)}</td><td>${esc(r.actor_username || L("Supabase डॅशबोर्ड (मालक)", "Supabase डैशबोर्ड (मालिक)", "Supabase dashboard (owner)"))}</td>
       <td><span class="act ${r.action}">${r.action}</span></td>
@@ -841,10 +852,78 @@ VIEWS.logins = async () => {
   };
 };
 
+
+/* Bills */
+const BTYPES = { electricity: T("वीज बिल", "बिजली बिल", "Electricity"), water: T("पाणी बिल", "पानी बिल", "Water"), property_tax: T("मालमत्ता कर", "संपत्ति कर", "Property tax") };
+let BTYPE = "electricity";
+const rs = n => n == null ? "—" : "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+VIEWS.bills = async () => {
+  const v = $("#view"); const admin = isAdmin();
+  v.innerHTML = `<div class="sechead"><h2>${T("बिले व भरणा", "बिल व भुगतान", "Bills & payments")}</h2>${admin ? `<button class="btn" type="button" id="bNew">${T("बिल जोडा", "बिल जोड़ें", "Add bill")}</button>` : ""}</div>
+    <div class="subtabs" role="group">${Object.keys(BTYPES).map(k => `<button type="button" data-bt="${k}" aria-pressed="${k === BTYPE}">${BTYPES[k]}</button>`).join("")}</div>
+    <div id="bForm"></div><div id="bBody" class="muted">…</div>
+    <p class="small muted">${T("बिलांच्या व पावत्यांच्या PDF प्रती: कागदपत्रे → वीज बिल / भरणा पावत्या.", "बिलों व रसीदों की PDF: दस्तावेज़ → बिजली बिल / भुगतान रसीदें।", "PDF copies of bills and receipts: Documents → Electricity bills / Payment receipts.")}</p>`;
+  v.querySelector(".subtabs").onclick = e => { const b = e.target.closest("[data-bt]"); if (b) { BTYPE = b.dataset.bt; VIEWS.bills(); } };
+  const { data, error } = await sb.from("bills").select("*").eq("bill_type", BTYPE).order("account_no").order("bill_month", { ascending: false, nullsFirst: false }).order("paid_date", { ascending: false });
+  if (error) { $("#bBody").textContent = errText(error); return; }
+  const accts = [...new Set(data.map(r => r.account_no))];
+  $("#bBody").className = ""; $("#bBody").style.display = "grid"; $("#bBody").style.gap = "1.25rem";
+  $("#bBody").innerHTML = accts.length ? accts.map(a => {
+    const rows = data.filter(r => r.account_no === a), name = rows[0].account_name || "";
+    const sum = k => rows.reduce((t, r) => t + (Number(r[k]) || 0), 0);
+    const chart = BTYPE === "electricity" ? [...rows].reverse().filter(r => r.units != null) : [];
+    const mx = Math.max(1, ...chart.map(r => Number(r.units)));
+    return `<section class="panel">
+      <div class="row" style="justify-content:space-between"><h3>${esc(name)}</h3><span class="small muted num">${BTYPE === "electricity" ? L("ग्राहक क्र.", "उपभोक्ता क्र.", "Consumer no.") : L("क्रमांक", "क्रमांक", "No.")} ${esc(a)}</span></div>
+      <div class="kpis">
+        ${BTYPE === "electricity" ? `<div><small>${L("शेवटचे बिल", "अंतिम बिल", "Latest bill")} (${esc(rows[0].period_label || "")})</small><b>${rs(rows[0].bill_amount)}</b></div><div><small>${L("एकूण बिल", "कुल बिल", "Total billed")}</small><b>${rs(sum("bill_amount"))}</b></div>` : ""}
+        <div><small>${L("एकूण भरले", "कुल भुगतान", "Total paid")}</small><b>${rs(sum("paid_amount"))}</b></div>
+        ${BTYPE === "electricity" ? `<div><small>${L("वेळेवर भरल्याने बचत", "समय पर भुगतान से बचत", "Prompt-payment savings")}</small><b>${rs(sum("savings"))}</b></div><div><small>${L("एकूण युनिट", "कुल यूनिट", "Total units")}</small><b>${sum("units").toLocaleString("en-IN")}</b></div>` : ""}
+      </div>
+      ${chart.length ? `<div aria-label="units per month"><div class="bars">${chart.map(r => `<div style="height:${Math.round(Number(r.units) / mx * 100)}%" title="${esc(r.period_label)}: ${r.units} units"></div>`).join("")}</div><div class="barlbl">${chart.map(r => `<span>${esc((r.period_label || "").slice(0, 3))}</span>`).join("")}</div><p class="small muted">${L("दरमहा वापर (युनिट)", "मासिक खपत (यूनिट)", "Monthly consumption (units)")}</p></div>` : ""}
+      <div class="tablebox"><table><thead><tr>
+        <th>${T("कालावधी", "अवधि", "Period")}</th>${BTYPE === "electricity" ? `<th>${T("युनिट", "यूनिट", "Units")}</th><th>${T("बिल", "बिल", "Bill")}</th><th>${T("सवलत तारीख", "छूट तिथि", "Prompt date")}</th><th>${T("देय तारीख", "देय तिथि", "Due date")}</th>` : ""}
+        <th>${T("भरले", "भुगतान", "Paid")}</th><th>${T("भरणा दिनांक", "भुगतान तिथि", "Paid on")}</th><th>${T("स्थिती", "स्थिति", "Status")}</th>${BTYPE === "electricity" ? `<th>${T("बचत", "बचत", "Saved")}</th>` : ""}<th>${T("पावती / संदर्भ", "रसीद / संदर्भ", "Receipt / ref.")}</th>${admin ? "<th></th>" : ""}</tr></thead>
+        <tbody class="num">${rows.map(r => `<tr>
+          <td>${esc(r.period_label || (r.bill_month ? fmtDate(r.bill_month) : ""))}${r.notes ? `<br><span class="small muted">${esc(r.notes)}</span>` : ""}</td>
+          ${BTYPE === "electricity" ? `<td>${r.units ?? ""}</td><td>${rs(r.bill_amount)}</td><td class="small">${r.prompt_date ? fmtDate(r.prompt_date) : ""}</td><td class="small">${r.due_date ? fmtDate(r.due_date) : ""}</td>` : ""}
+          <td>${rs(r.paid_amount)}</td><td class="small">${r.paid_date ? fmtDate(r.paid_date) : "—"}</td>
+          <td><span class="tag ${/On Time|Paid/i.test(r.payment_status || "") ? "approved" : /No Payment/i.test(r.payment_status || "") ? "rejected" : "pending"}">${esc(r.payment_status || "—")}</span></td>
+          ${BTYPE === "electricity" ? `<td>${rs(r.savings)}</td>` : ""}
+          <td class="small">${esc(r.receipt_no || "")}${r.bank_ref ? `<br><span class="muted">${esc(r.bank_ref)}</span>` : ""}${r.payment_mode ? `<br><span class="muted">${esc(r.payment_mode)}</span>` : ""}</td>
+          ${admin ? `<td><div class="row"><button class="btn ghost" data-bedit="${r.id}">${T("बदला", "बदलें", "Edit")}</button><button class="btn warn" data-bdel="${r.id}">${T("हटवा", "हटाएँ", "Delete")}</button></div></td>` : ""}</tr>`).join("")}</tbody></table></div>
+    </section>`;
+  }).join("") : `<p class="muted">${T("या प्रकारचे बिल अद्याप नोंदवलेले नाही.", "इस प्रकार का कोई बिल दर्ज नहीं।", "No bills of this type recorded yet.")}</p>`;
+  if (!admin) return;
+  $("#bNew").onclick = () => billForm({ bill_type: BTYPE, account_no: accts[0] || "", account_name: data[0]?.account_name || "" });
+  $("#bBody").onclick = e => {
+    const ed = e.target.closest("[data-bedit]"), dl = e.target.closest("[data-bdel]");
+    if (ed) billForm(data.find(r => r.id == ed.dataset.bedit));
+    if (dl) confirmInline(dl, async () => { const { error } = await sb.from("bills").delete().eq("id", dl.dataset.bdel); if (error) return toast(errText(error)); toast(L("हटवले.", "हटाया गया।", "Deleted.")); VIEWS.bills(); });
+  };
+};
+function billForm(b) {
+  const F = [["account_no", T("ग्राहक / मालमत्ता क्रमांक", "उपभोक्ता / संपत्ति क्रमांक", "Consumer / property no."), "text"], ["account_name", T("नाव", "नाम", "Name"), "text"], ["period_label", T("कालावधी (उदा. Sep 2026)", "अवधि (जैसे Sep 2026)", "Period (e.g. Sep 2026)"), "text"], ["bill_month", T("बिल महिना (तारीख)", "बिल माह (तिथि)", "Bill month (date)"), "date"],
+    ["units", T("युनिट", "यूनिट", "Units"), "number"], ["bill_amount", T("बिल रक्कम ₹", "बिल राशि ₹", "Bill amount ₹"), "number"], ["prompt_date", T("सवलत तारीख", "छूट तिथि", "Prompt-payment date"), "date"], ["due_date", T("देय तारीख", "देय तिथि", "Due date"), "date"],
+    ["paid_amount", T("भरलेली रक्कम ₹", "भुगतान राशि ₹", "Amount paid ₹"), "number"], ["paid_date", T("भरणा दिनांक", "भुगतान तिथि", "Date paid"), "date"], ["payment_status", T("स्थिती", "स्थिति", "Status"), "text"], ["savings", T("बचत ₹", "बचत ₹", "Savings ₹"), "number"],
+    ["payment_mode", T("भरणा पद्धत", "भुगतान माध्यम", "Payment mode"), "text"], ["receipt_no", T("पावती क्र.", "रसीद क्र.", "Receipt no."), "text"], ["bank_ref", T("बँक संदर्भ", "बैंक संदर्भ", "Bank ref."), "text"], ["paid_by", T("कोणी भरले", "किसने भरा", "Paid by"), "text"], ["notes", T("टीप", "टिप्पणी", "Notes"), "text"]];
+  $("#bForm").innerHTML = `<form class="panel" id="bf" style="background:var(--plum-soft)"><h3>${b.id ? T("बिल बदला", "बिल बदलें", "Edit bill") : T("नवीन बिल", "नया बिल", "New bill")} · ${BTYPES[b.bill_type]}</h3><div class="grid2">
+    ${F.map(([k, l, t]) => `<label>${l}<input id="bf_${k}" type="${t}" ${t === "number" ? 'step="any"' : ""} value="${esc(b[k] ?? "")}"></label>`).join("")}</div>
+    <div class="row"><button class="btn" type="submit">${T("जतन करा", "सहेजें", "Save")}</button><button class="btn ghost" type="button" id="bfC">${T("रद्द", "रद्द", "Cancel")}</button></div></form>`;
+  $("#bfC").onclick = () => $("#bForm").innerHTML = "";
+  $("#bf").onsubmit = async e => { e.preventDefault();
+    const row = { bill_type: b.bill_type, updated_at: new Date().toISOString() };
+    F.forEach(([k, , t]) => { const v = $("#bf_" + k).value.trim(); row[k] = v === "" ? null : t === "number" ? Number(v) : v; });
+    if (!row.account_no) return toast(L("क्रमांक आवश्यक आहे.", "क्रमांक आवश्यक है।", "Account number is required."));
+    const { error } = b.id ? await sb.from("bills").update(row).eq("id", b.id) : await sb.from("bills").insert(row);
+    if (error) return toast(errText(error)); toast(L("जतन झाले.", "सहेजा गया।", "Saved.")); VIEWS.bills(); };
+  $("#bForm").scrollIntoView({ behavior: "smooth" });
+}
+
 /* Export (admin) */
 async function exportAll() {
   const out = {};
-  for (const t of ["flats", "notices", "noc_requests", "meetings", "resolutions", "ownership_history", "issued_letters", "documents", "activity_log"]) {
+  for (const t of ["flats", "notices", "noc_requests", "meetings", "resolutions", "ownership_history", "issued_letters", "documents", "bills", "activity_log"]) {
     const { data, error } = await sb.from(t).select("*");
     if (error) return toast(errText(error)); out[t] = data;
   }
