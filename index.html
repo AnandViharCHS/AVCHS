@@ -6,7 +6,7 @@
 <title>Anand Vihar CHS Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;700&family=Tiro+Devanagari+Marathi&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin:wght@700&family=Mukta:wght@400;500;700;800&family=Tiro+Devanagari+Marathi&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 :root{
@@ -15,11 +15,12 @@
   --sage:#4f7a4c;--sage-soft:#e6efe3;--indigo:#3f4f8f;--indigo-soft:#e5e8f4;--plum:#6f4f86;--plum-soft:#eee7f3;--mast:#eef1f0;
   --display:"Tiro Devanagari Marathi","Noto Serif Devanagari",Georgia,serif;
   --body:"Mukta","Noto Sans Devanagari",system-ui,sans-serif;
+  --brand:#2b4c71;--brandfont:"Gill Sans MT","Gill Sans","Cabin","Mukta",sans-serif;
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#13161f;--surface:#1b1f2b;--ink:#dfe3f3;--fg:#e4e4ea;--muted:#a2a4b4;--line:#2c3140;
   --teal:#7fbcbd;--teal-soft:#1a2b2c;--ochre:#d9a85a;--ochre-soft:#2f2718;--rose:#d595a2;--rose-soft:#2e1e23;
-  --sage:#93bf8e;--sage-soft:#1e2a1e;--indigo:#9eaae0;--indigo-soft:#1f2438;--plum:#bba0d0;--plum-soft:#271f30;--mast:#18202a;color-scheme:dark}}
+  --sage:#93bf8e;--sage-soft:#1e2a1e;--indigo:#9eaae0;--indigo-soft:#1f2438;--plum:#bba0d0;--plum-soft:#271f30;--mast:#18202a;--brand:#9dbbe0;color-scheme:dark}}
 :root:not([data-l]) :is(.hi,.en),:root[data-l="mr"] :is(.hi,.en),:root[data-l="hi"] :is(.mr,.en),:root[data-l="en"] :is(.mr,.hi){display:none}
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -36,6 +37,9 @@ p{margin:0}
 .mast{background:var(--mast);padding-top:env(safe-area-inset-top,0)}
 .mast .wrap{padding-block:1rem .8rem;display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;flex-wrap:wrap}
 .mast h1{font-size:clamp(1.25rem,4vw,1.8rem)}
+.brandname{font-family:var(--brandfont)!important;font-weight:700;color:var(--brand)!important;letter-spacing:.01em}
+.brandname .en{text-transform:uppercase;letter-spacing:.02em}
+.brandname :is(.mr,.hi){font-family:"Mukta",sans-serif;font-weight:800}
 .mast small{display:block;color:var(--muted);font-size:.82rem}
 .mast::after{content:"";display:block;height:4px;background:linear-gradient(90deg,var(--teal),var(--sage),var(--ochre),var(--rose),var(--plum),var(--indigo))}
 .tools{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
@@ -122,10 +126,10 @@ td.r{text-align:right}
 
 /* NOC letter */
 .letter{background:#fff;color:#111;max-width:46rem;margin:0 auto;padding:2.2rem 2.4rem;border:1px solid var(--line);font-family:"Times New Roman",Georgia,serif;font-size:12pt;line-height:1.55}
-.letter .lh{text-align:center;border-bottom:1.5px solid #1d2754;padding-bottom:.4rem;margin-bottom:.2rem}
-.letter .lh b{display:block;font-family:Arial,Helvetica,sans-serif;font-size:19pt;letter-spacing:.02em;color:#1d2754}
+.letter .lh{text-align:center;border-bottom:1.5px solid #2b4c71;padding-bottom:.4rem;margin-bottom:.2rem}
+.letter .lh b{display:block;font-family:"Gill Sans MT","Gill Sans","Cabin",Arial,sans-serif;font-weight:700;font-size:20pt;letter-spacing:.02em;color:#2b4c71}
 .letter .lh span{font-size:10pt}
-.letter .addr{text-align:center;font-size:10pt;border-bottom:1.5px solid #1d2754;padding:.2rem 0 .3rem;margin-bottom:1rem}
+.letter .addr{text-align:center;font-size:10pt;border-bottom:1.5px solid #2b4c71;padding:.2rem 0 .3rem;margin-bottom:1rem}
 .letter .meta{display:flex;justify-content:space-between;margin-bottom:1rem}
 .letter p{margin:0 0 .8rem;text-align:justify;white-space:pre-wrap}
 .letter .sign{margin-top:2.5rem}
@@ -144,7 +148,7 @@ td.r{text-align:right}
 <section class="login" id="vLogin" hidden>
   <div class="card">
     <header>
-      <h1 style="font-size:1.35rem"><span class="mr">आनंद विहार को-ऑप. हाऊसिंग सोसायटी लि.</span><span class="hi">आनंद विहार को-ऑप. हाउसिंग सोसायटी लि.</span><span class="en">Anand Vihar Co-op. Hsg. Society Ltd.</span></h1>
+      <h1 class="brandname" style="font-size:1.35rem"><span class="mr">आनंद विहार को-ऑप. हाऊसिंग सोसायटी लि.</span><span class="hi">आनंद विहार को-ऑप. हाउसिंग सोसायटी लि.</span><span class="en">Anand Vihar Co-op Hsg. Society Ltd.</span></h1>
       <small class="muted">Regd. No. TNA/KLN/HSG/(TC)4144/1990-91 · Dombivli (W)</small>
     </header>
     <form id="fLogin" autocomplete="on">
@@ -183,8 +187,8 @@ td.r{text-align:right}
   <header class="mast">
     <div class="wrap">
       <div>
-        <h1><span class="mr">आनंद विहार को-ऑप. हाऊसिंग सोसायटी लि.</span><span class="hi">आनंद विहार को-ऑप. हाउसिंग सोसायटी लि.</span><span class="en">Anand Vihar Co-op. Hsg. Society Ltd.</span></h1>
-        <small>Regd. No. TNA/KLN/HSG/(TC)4144/1990-91 · Anand Nagar Bldg. No. 3, Pandit Dindayal Road, Dombivli (W) – 421 201</small>
+        <h1 class="brandname"><span class="mr">आनंद विहार को-ऑप. हाऊसिंग सोसायटी लि.</span><span class="hi">आनंद विहार को-ऑप. हाउसिंग सोसायटी लि.</span><span class="en">Anand Vihar Co-op Hsg. Society Ltd.</span></h1>
+        <small>Regd. No. TNA/KLN/HSG/(TC)4144/1990-91 · Anand Nagar Bldg. No. 3, Pandit Dindayal Road, Dombivli (W) – 421 202</small>
       </div>
       <div class="tools">
         <span class="who" id="who"></span>
@@ -213,7 +217,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession
 const SOC = {
   name: "ANAND VIHAR CO-OP HSG. SOCIETY LTD.",
   reg: "(Regd. No. TNA/KLN/HSG/(TC)4144/1990-91 Dated 13-12-90)",
-  addr: "Anand Nagar Bldg. No. 3, Pandit Dindayal Road, Dombivli (West). Dist- Thane - 421 201."
+  addr: "Anand Nagar Bldg. No. 3, Pandit Dindayal Road, Dombivli (West). Dist- Thane - 421 202."
 };
 
 /* ---------------- helpers ---------------- */
@@ -698,7 +702,7 @@ const PURPOSES = {
 };
 function letterTemplate(r, f) {
   const who = f.owner_name, flat = `Flat No. ${f.flat_no}`;
-  const addr = `${flat}, Anand Vihar Co-op. Hsg. Society Ltd., Anand Nagar Bldg. No. 3, Pandit Dindayal Road, Dombivli (West), Dist. Thane – 421 201`;
+  const addr = `${flat}, Anand Vihar Co-op. Hsg. Society Ltd., Anand Nagar Bldg. No. 3, Pandit Dindayal Road, Dombivli (West), Dist. Thane – 421 202`;
   const extra = r.details ? `\n\n${r.details}` : "";
   const T2 = {
     sale: [`No Objection Certificate for Sale of ${flat}`, `This is to certify that ${who} is a bonafide member of Anand Vihar Co-op. Hsg. Society Ltd. and holds ${flat}, together with Share Certificate No. ${f.share_cert_no ?? "____"} for shares bearing distinctive nos. ${f.share_range ?? "____"}.\n\nThe Society has no objection to the proposed sale and transfer of the said flat, subject to the clearance of all dues payable to the Society and compliance with the provisions of the Bye-laws of the Society and the Maharashtra Co-operative Societies Act, 1960 in respect of transfer of shares and interest in the property.`],
