@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="mr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Anand Vihar CHS Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;700&family=Tiro+Devanagari+Marathi&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --bg:#f6f5f1;--surface:#fff;--ink:#22305e;--fg:#2a2d3a;--muted:#646676;--line:#e3e0d8;
+  --teal:#2f6f73;--teal-soft:#e2eeed;--ochre:#b07a2a;--ochre-soft:#f6ecdb;--rose:#9b4d5c;--rose-soft:#f4e5e7;
+  --sage:#4f7a4c;--sage-soft:#e6efe3;--indigo:#3f4f8f;--indigo-soft:#e5e8f4;--plum:#6f4f86;--plum-soft:#eee7f3;--mast:#eef1f0;
+  --display:"Tiro Devanagari Marathi","Noto Serif Devanagari",Georgia,serif;
+  --body:"Mukta","Noto Sans Devanagari",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#13161f;--surface:#1b1f2b;--ink:#dfe3f3;--fg:#e4e4ea;--muted:#a2a4b4;--line:#2c3140;
+  --teal:#7fbcbd;--teal-soft:#1a2b2c;--ochre:#d9a85a;--ochre-soft:#2f2718;--rose:#d595a2;--rose-soft:#2e1e23;
+  --sage:#93bf8e;--sage-soft:#1e2a1e;--indigo:#9eaae0;--indigo-soft:#1f2438;--plum:#bba0d0;--plum-soft:#271f30;--mast:#18202a;color-scheme:dark}}
+:root:not([data-l]) :is(.hi,.en),:root[data-l="mr"] :is(.hi,.en),:root[data-l="hi"] :is(.mr,.en),:root[data-l="en"] :is(.mr,.hi){display:none}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:1.0625rem;line-height:1.55;padding-bottom:env(safe-area-inset-bottom,0)}
+[hidden]{display:none!important}
+h1,h2,h3{font-family:var(--display);font-weight:400;color:var(--ink);margin:0;line-height:1.25;text-wrap:balance}
+h2{font-size:1.55rem}h3{font-size:1.15rem}
+p{margin:0}
+.wrap{max-width:60rem;margin:0 auto;padding-inline:16px}
+:focus-visible{outline:2px solid var(--ochre);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* masthead */
+.mast{background:var(--mast);padding-top:env(safe-area-inset-top,0)}
+.mast .wrap{padding-block:1rem .8rem;display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;flex-wrap:wrap}
+.mast h1{font-size:clamp(1.25rem,4vw,1.8rem)}
+.mast small{display:block;color:var(--muted);font-size:.82rem}
+.mast::after{content:"";display:block;height:4px;background:linear-gradient(90deg,var(--teal),var(--sage),var(--ochre),var(--rose),var(--plum),var(--indigo))}
+.tools{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.langs{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.langs button{font:inherit;font-size:.9rem;background:var(--surface);color:var(--fg);border:0;padding:.25rem .65rem;cursor:pointer}
+.langs button+button{border-left:1px solid var(--line)}
+.langs button[aria-pressed="true"]{background:var(--teal);color:var(--surface)}
+.who{font-size:.9rem;color:var(--muted)}
+
+/* nav */
+nav.tabs{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+nav.tabs .wrap{display:flex;gap:.25rem;overflow-x:auto;padding-block:.4rem;scrollbar-width:none}
+nav.tabs button{font:inherit;font-size:.95rem;white-space:nowrap;border:0;background:transparent;color:var(--muted);padding:.35rem .75rem;border-radius:5px;cursor:pointer}
+nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:inset 0 -2px 0 var(--tc,var(--teal))}
+
+main .wrap{padding-block:1.5rem 3rem;display:grid;gap:1.25rem}
+.sechead{display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-bottom:2px solid var(--tc,var(--teal));padding-bottom:.4rem}
+.sechead h2{color:var(--tc,var(--teal))}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:1rem 1.1rem;display:grid;gap:.75rem}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+
+/* forms */
+label{display:grid;gap:.2rem;font-size:.92rem;color:var(--muted)}
+input,select,textarea{font:inherit;font-size:1rem;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:.5rem .65rem;width:100%}
+textarea{min-height:6rem;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:var(--teal);outline:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:.75rem}
+.row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.btn{font:inherit;font-size:.95rem;cursor:pointer;border-radius:6px;padding:.45rem 1rem;border:1px solid var(--teal);background:var(--teal);color:var(--surface)}
+.btn.ghost{background:transparent;color:var(--teal)}
+.btn.warn{border-color:var(--rose);background:transparent;color:var(--rose)}
+.btn.ok{border-color:var(--sage);background:var(--sage);color:var(--surface)}
+.btn:disabled{opacity:.5;cursor:default}
+.check{display:flex;gap:.5rem;align-items:center;color:var(--fg)}
+.check input{width:auto}
+
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--bg)}
+.login .card{width:100%;max-width:26rem;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.login .card header{background:var(--mast);padding:1.2rem 1.25rem;display:grid;gap:.25rem}
+.login .card header::after{content:"";display:block;height:4px;margin:.6rem -1.25rem -1.2rem;background:linear-gradient(90deg,var(--teal),var(--sage),var(--ochre),var(--rose),var(--plum),var(--indigo))}
+.login form{padding:1.25rem;display:grid;gap:.8rem}
+.err{color:var(--rose);font-size:.92rem}
+.okmsg{color:var(--sage);font-size:.92rem}
+
+/* lists */
+.notice{display:grid;grid-template-columns:5rem 1fr;gap:.2rem 1rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.9rem 1rem}
+.notice .d{grid-row:span 3;color:var(--ochre);text-align:center;line-height:1.15}
+.notice .d b{display:block;font-family:var(--display);font-size:1.6rem;font-weight:400}
+.notice .d small{color:var(--muted);font-size:.8rem}
+.tag{justify-self:start;font-size:.75rem;padding:.05rem .5rem;border-radius:3px;background:var(--ochre-soft);color:var(--ochre)}
+.tag.pending{background:var(--ochre-soft);color:var(--ochre)}
+.tag.approved{background:var(--sage-soft);color:var(--sage)}
+.tag.rejected{background:var(--rose-soft);color:var(--rose)}
+.tag.draft{background:var(--line);color:var(--muted)}
+@media (max-width:30rem){.notice{grid-template-columns:1fr}.notice .d{grid-row:auto;text-align:left}.notice .d b{display:inline;font-size:1.1rem;margin-right:.3rem}}
+
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:500;color:var(--tc,var(--teal));background:var(--bg);font-size:.85rem;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+td.r{text-align:right}
+.diff{font-size:.85rem;color:var(--muted);display:grid;gap:.1rem}
+.diff del{color:var(--rose)}.diff ins{color:var(--sage);text-decoration:none}
+.act{font-size:.78rem;padding:.05rem .45rem;border-radius:3px;white-space:nowrap}
+.act.INSERT{background:var(--sage-soft);color:var(--sage)}
+.act.UPDATE{background:var(--indigo-soft);color:var(--indigo)}
+.act.DELETE{background:var(--rose-soft);color:var(--rose)}
+.act.LOGIN,.act.PASSWORD_CHANGED,.act.PASSWORD_RESET{background:var(--ochre-soft);color:var(--ochre)}
+
+.toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:.55rem 1rem;border-radius:6px;font-size:.95rem;z-index:30;max-width:calc(100% - 32px)}
+
+/* NOC letter */
+.letter{background:#fff;color:#111;max-width:46rem;margin:0 auto;padding:2.2rem 2.4rem;border:1px solid var(--line);font-family:"Times New Roman",Georgia,serif;font-size:12pt;line-height:1.55}
+.letter .lh{text-align:center;border-bottom:1.5px solid #1d2754;padding-bottom:.4rem;margin-bottom:.2rem}
+.letter .lh b{display:block;font-family:Arial,Helvetica,sans-serif;font-size:19pt;letter-spacing:.02em;color:#1d2754}
+.letter .lh span{font-size:10pt}
+.letter .addr{text-align:center;font-size:10pt;border-bottom:1.5px solid #1d2754;padding:.2rem 0 .3rem;margin-bottom:1rem}
+.letter .meta{display:flex;justify-content:space-between;margin-bottom:1rem}
+.letter p{margin:0 0 .8rem;text-align:justify;white-space:pre-wrap}
+.letter .sign{margin-top:2.5rem}
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{position:absolute;left:0;top:0;width:100%}
+  .letter{border:0;max-width:none;padding:0}
+  @page{size:A4;margin:18mm 20mm}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<section class="login" id="vLogin" hidden>
+  <div class="card">
+    <header>
+      <h1 style="font-size:1.35rem"><span class="mr">आनंद विहार को-ऑप. हाऊसिंग सोसायटी लि.</span><span class="hi">आनंद विहार को-ऑप. हाउसिंग सोसायटी लि.</span><span class="en">Anand Vihar Co-op. Hsg. Society Ltd.</span></h1>
+      <small class="muted">Regd. No. TNA/KLN/HSG/(TC)4144/1990-91 · Dombivli (W)</small>
+    </header>
+    <form id="fLogin" autocomplete="on">
+      <div class="langs" role="group" aria-label="Language" style="justify-self:start">
+        <button type="button" data-l="mr">मराठी</button><button type="button" data-l="hi">हिंदी</button><button type="button" data-l="en">English</button>
+      </div>
+      <label for="lUser"><span class="mr">वापरकर्ता नाव (उदा. AV07)</span><span class="hi">यूज़रनेम (जैसे AV07)</span><span class="en">Username (e.g. AV07)</span>
+        <input id="lUser" name="username" autocomplete="username" autocapitalize="characters" required></label>
+      <label for="lPass"><span class="mr">पासवर्ड</span><span class="hi">पासवर्ड</span><span class="en">Password</span>
+        <input id="lPass" name="password" type="password" autocomplete="current-password" required></label>
+      <p class="err" id="lErr" hidden></p>
+      <button class="btn" type="submit" id="lBtn"><span class="mr">लॉग इन करा</span><span class="hi">लॉग इन करें</span><span class="en">Log in</span></button>
+      <p class="small muted"><span class="mr">पासवर्ड विसरल्यास सचिव किंवा अध्यक्षांशी संपर्क साधा.</span><span class="hi">पासवर्ड भूल जाने पर सचिव या अध्यक्ष से संपर्क करें।</span><span class="en">Forgot your password? Contact the Secretary or Chairman.</span></p>
+    </form>
+  </div>
+</section>
+
+<!-- CHANGE PASSWORD -->
+<section class="login" id="vPw" hidden>
+  <div class="card">
+    <header><h1 style="font-size:1.3rem"><span class="mr">नवीन पासवर्ड ठेवा</span><span class="hi">नया पासवर्ड रखें</span><span class="en">Set your own password</span></h1>
+      <small class="muted"><span class="mr">पहिल्या लॉग इननंतर पासवर्ड बदलणे आवश्यक आहे.</span><span class="hi">पहली बार लॉग इन के बाद पासवर्ड बदलना आवश्यक है।</span><span class="en">You must change the first password before continuing.</span></small></header>
+    <form id="fPw">
+      <label for="p1"><span class="mr">नवीन पासवर्ड (किमान ८ अक्षरे)</span><span class="hi">नया पासवर्ड (कम से कम 8 अक्षर)</span><span class="en">New password (at least 8 characters)</span>
+        <input id="p1" type="password" minlength="8" autocomplete="new-password" required></label>
+      <label for="p2"><span class="mr">पुन्हा टाका</span><span class="hi">दोबारा लिखें</span><span class="en">Type it again</span>
+        <input id="p2" type="password" minlength="8" autocomplete="new-password" required></label>
+      <p class="err" id="pErr" hidden></p>
+      <button class="btn" type="submit"><span class="mr">पासवर्ड जतन करा</span><span class="hi">पासवर्ड सहेजें</span><span class="en">Save password</span></button>
+    </form>
+  </div>
+</section>
+
+<!-- APP -->
+<div id="vApp" hidden>
+  <header class="mast">
+    <div class="wrap">
+      <div>
+        <h1><span class="mr">आनंद विहार को-ऑप. हाऊसिंग सोसायटी लि.</span><span class="hi">आनंद विहार को-ऑप. हाउसिंग सोसायटी लि.</span><span class="en">Anand Vihar Co-op. Hsg. Society Ltd.</span></h1>
+        <small>Regd. No. TNA/KLN/HSG/(TC)4144/1990-91 · Anand Nagar Bldg. No. 3, Pandit Dindayal Road, Dombivli (W) – 421 201</small>
+      </div>
+      <div class="tools">
+        <span class="who" id="who"></span>
+        <div class="langs" role="group" aria-label="Language">
+          <button type="button" data-l="mr">मराठी</button><button type="button" data-l="hi">हिंदी</button><button type="button" data-l="en">English</button>
+        </div>
+        <button class="btn ghost" type="button" id="bChangePw"><span class="mr">पासवर्ड बदला</span><span class="hi">पासवर्ड बदलें</span><span class="en">Change password</span></button>
+        <button class="btn warn" type="button" id="bOut"><span class="mr">बाहेर पडा</span><span class="hi">लॉग आउट</span><span class="en">Log out</span></button>
+      </div>
+    </div>
+  </header>
+  <nav class="tabs" aria-label="Sections"><div class="wrap" id="tabs" role="tablist"></div></nav>
+  <main><div class="wrap" id="view"></div></main>
+</div>
+
+<div id="printArea" aria-hidden="true"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---------------- configuration ---------------- */
+const SB_URL = "https://hnnuldiybhzdkvvtpxeu.supabase.co";
+const SB_KEY = "sb_publishable_vbZ5SUjQYMzp42ncX0em1g_f0nqHPTV"; // public key; data is protected by database rules
+const DOMAIN = "@avchs.local";
+const sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, storageKey: "avchs-auth" } });
+
+const SOC = {
+  name: "ANAND VIHAR CO-OP HSG. SOCIETY LTD.",
+  reg: "(Regd. No. TNA/KLN/HSG/(TC)4144/1990-91 Dated 13-12-90)",
+  addr: "Anand Nagar Bldg. No. 3, Pandit Dindayal Road, Dombivli (West). Dist- Thane - 421 201."
+};
+
+/* ---------------- helpers ---------------- */
+const $ = s => document.querySelector(s);
+const T = (mr, hi, en) => `<span class="mr">${mr}</span><span class="hi">${hi}</span><span class="en">${en}</span>`;
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let LANG = "mr";
+let ME = null; // profile row of the logged-in user
+let TAB = null;
+const L = (mr, hi, en) => LANG === "hi" ? hi : LANG === "en" ? en : mr;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => t.hidden = true, 3200); }
+function fmtDate(d) { if (!d) return ""; const x = new Date(d); return x.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }); }
+function fmtDT(d) { const x = new Date(d); return x.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); }
+function show(id) { ["#vLogin", "#vPw", "#vApp"].forEach(v => $(v).hidden = v !== id); }
+function errText(e) { return (e && (e.message || e.error_description)) || String(e); }
+
+function setLang(l) {
+  LANG = ["mr", "hi", "en"].includes(l) ? l : "mr";
+  document.documentElement.setAttribute("data-l", LANG); document.documentElement.lang = LANG;
+  document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.l === LANG)));
+  try { localStorage.setItem("avchs-lang", LANG); } catch (e) { }
+  if (ME) render();
+}
+document.addEventListener("click", e => { const b = e.target.closest(".langs button"); if (b) setLang(b.dataset.l); });
+try { LANG = localStorage.getItem("avchs-lang") || "mr"; } catch (e) { }
+setLang(LANG);
+
+/* ---------------- auth ---------------- */
+
+$("#fLogin").addEventListener("submit", async e => {
+  e.preventDefault();
+  const u = $("#lUser").value.trim(), p = $("#lPass").value;
+  $("#lErr").hidden = true; $("#lBtn").disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email: u.toLowerCase() + DOMAIN, password: p });
+  $("#lBtn").disabled = false;
+  if (error) { $("#lErr").textContent = L("वापरकर्ता नाव किंवा पासवर्ड चुकीचा आहे.", "यूज़रनेम या पासवर्ड गलत है।", "Username or password is incorrect."); $("#lErr").hidden = false; return; }
+  $("#lPass").value = "";
+  await sb.rpc("log_login");
+  await boot();
+});
+
+$("#fPw").addEventListener("submit", async e => {
+  e.preventDefault();
+  const a = $("#p1").value, b = $("#p2").value;
+  const er = $("#pErr"); er.hidden = true;
+  if (a !== b) { er.textContent = L("दोन्ही पासवर्ड जुळत नाहीत.", "दोनों पासवर्ड मेल नहीं खाते।", "The two passwords do not match."); er.hidden = false; return; }
+  if (a.length < 8) { er.textContent = L("किमान ८ अक्षरे हवीत.", "कम से कम 8 अक्षर चाहिए।", "Use at least 8 characters."); er.hidden = false; return; }
+  const { error } = await sb.auth.updateUser({ password: a });
+  if (error) { er.textContent = errText(error); er.hidden = false; return; }
+  await sb.rpc("password_changed");
+  $("#p1").value = $("#p2").value = "";
+  toast(L("पासवर्ड बदलला.", "पासवर्ड बदल गया।", "Password changed."));
+  await boot();
+});
+
+$("#bOut").addEventListener("click", async () => { await sb.auth.signOut(); ME = null; show("#vLogin"); });
+$("#bChangePw").addEventListener("click", () => show("#vPw"));
+
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { show("#vLogin"); return; }
+  const { data, error } = await sb.from("profiles").select("*").eq("id", session.user.id).single();
+  if (error || !data) { await sb.auth.signOut(); show("#vLogin"); return; }
+  ME = data;
+  if (ME.must_change_password) { show("#vPw"); return; }
+  const roleName = { chairman: L("अध्यक्ष", "अध्यक्ष", "Chairman"), secretary: L("सचिव", "सचिव", "Secretary"), treasurer: L("खजिनदार", "कोषाध्यक्ष", "Treasurer") }[ME.role];
+  $("#who").textContent = ME.username + (roleName ? " · " + roleName : " · " + L("सदनिका ", "फ्लैट ", "Flat ") + ME.flat_no);
+  show("#vApp");
+  render();
+}
+const isAdmin = () => ME && ["chairman", "secretary", "treasurer"].includes(ME.role);
+
+/* ---------------- tabs ---------------- */
+function tabsFor() {
+  const t = [
+    { id: "notices", c: "var(--ochre)", label: T("सूचना", "सूचनाएँ", "Notices") },
+    { id: "noc", c: "var(--teal)", label: T("ना-हरकत प्रमाणपत्र", "अनापत्ति प्रमाणपत्र", "NOC requests") },
+    { id: "meetings", c: "var(--indigo)", label: T("सभा व ठराव", "सभा व प्रस्ताव", "Meetings") },
+    { id: "docs", c: "var(--sage)", label: T("कागदपत्रे", "दस्तावेज़", "Documents") },
+  ];
+  if (isAdmin()) {
+    t.push({ id: "flats", c: "var(--rose)", label: T("सदनिका नोंदवही", "फ्लैट रजिस्टर", "Flat register") });
+    t.push({ id: "letters", c: "var(--ochre)", label: T("जावक पत्रे", "जावक पत्र", "Letters issued") });
+    t.push({ id: "log", c: "var(--plum)", label: T("कामकाज नोंद", "गतिविधि लॉग", "Activity log") });
+    t.push({ id: "logins", c: "var(--indigo)", label: T("लॉगिन", "लॉगिन", "Logins") });
+  } else {
+    t.splice(1, 0, { id: "myflat", c: "var(--rose)", label: T("माझी सदनिका", "मेरा फ्लैट", "My flat") });
+    t.push({ id: "directory", c: "var(--indigo)", label: T("सभासद यादी", "सदस्य सूची", "Members") });
+  }
+  return t;
+}
+function render() {
+  const tabs = tabsFor();
+  if (!TAB || !tabs.find(x => x.id === TAB)) TAB = tabs[0].id;
+  $("#tabs").innerHTML = tabs.map(x => `<button role="tab" type="button" data-tab="${x.id}" style="--tc:${x.c}" aria-selected="${x.id === TAB}">${x.label}</button>`).join("");
+  const cur = tabs.find(x => x.id === TAB);
+  $("#view").style.setProperty("--tc", cur.c);
+  VIEWS[TAB]();
+}
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { TAB = b.dataset.tab; render(); } });
+
+/* ---------------- views ---------------- */
+const VIEWS = {};
+const CATS = { notice: T("सूचना", "सूचना", "Notice"), circular: T("परिपत्रक", "परिपत्र", "Circular"), meeting: T("सभा", "सभा", "Meeting"), rules: T("नियम", "नियम", "Rules"), payment: T("देय", "देय", "Payment"), event: T("कार्यक्रम", "कार्यक्रम", "Event"), information: T("माहिती", "जानकारी", "Information") };
+
+/* Notices */
+VIEWS.notices = async () => {
+  const v = $("#view");
+  v.innerHTML = `<div class="sechead"><h2>${T("सूचना फलक", "सूचना पटल", "Notice board")}</h2>${isAdmin() ? `<button class="btn" type="button" id="nNew">${T("नवीन सूचना", "नई सूचना", "New notice")}</button>` : ""}</div><div id="nForm"></div><div id="nList" class="muted">…</div>`;
+  const { data, error } = await sb.from("notices").select("*").order("notice_date", { ascending: false });
+  if (error) { $("#nList").textContent = errText(error); return; }
+  $("#nList").className = ""; $("#nList").style.display = "grid"; $("#nList").style.gap = ".75rem";
+  $("#nList").innerHTML = data.length ? data.map(n => {
+    const d = new Date(n.notice_date);
+    return `<article class="notice"><div class="d"><b>${String(d.getDate()).padStart(2, "0")}</b><small>${d.toLocaleDateString("en-IN", { month: "short", year: "numeric" })}</small></div>
+      <div class="row"><span class="tag">${CATS[n.category] || esc(n.category)}</span>${n.is_published ? "" : `<span class="tag draft">${T("मसुदा", "ड्राफ्ट", "Draft")}</span>`}</div>
+      <h3>${T(esc(n.title_mr), esc(n.title_hi || n.title_mr), esc(n.title_en || n.title_mr))}</h3>
+      <p>${T(esc(n.body_mr), esc(n.body_hi || n.body_mr), esc(n.body_en || n.body_mr))}</p>
+      ${isAdmin() ? `<div class="row" style="grid-column:2"><button class="btn ghost" data-edit="${n.id}">${T("बदला", "बदलें", "Edit")}</button><button class="btn warn" data-del="${n.id}">${T("हटवा", "हटाएँ", "Delete")}</button></div>` : ""}
+    </article>`;
+  }).join("") : `<p class="muted">${T("सध्या कोणतीही सूचना नाही.", "अभी कोई सूचना नहीं।", "No notices yet.")}</p>`;
+  if (!isAdmin()) return;
+  $("#nNew").onclick = () => noticeForm();
+  $("#nList").onclick = async e => {
+    const ed = e.target.closest("[data-edit]"), dl = e.target.closest("[data-del]");
+    if (ed) noticeForm(data.find(x => x.id == ed.dataset.edit));
+    if (dl) confirmInline(dl, async () => {
+      const { error } = await sb.from("notices").delete().eq("id", dl.dataset.del);
+      if (error) return toast(errText(error));
+      toast(L("सूचना हटवली.", "सूचना हटाई गई।", "Notice deleted.")); VIEWS.notices();
+    });
+  };
+};
+function noticeForm(n = {}) {
+  const f = $("#nForm");
+  f.innerHTML = `<form class="panel" id="nf">
+    <div class="grid2">
+      <label>${T("दिनांक", "दिनांक", "Date")}<input type="date" id="nfDate" value="${n.notice_date || new Date().toISOString().slice(0, 10)}" required></label>
+      <label>${T("प्रकार", "प्रकार", "Type")}<select id="nfCat">${Object.keys(CATS).map(k => `<option value="${k}" ${n.category === k ? "selected" : ""}>${k}</option>`).join("")}</select></label>
+    </div>
+    <label>शीर्षक (मराठी) *<input id="nfTmr" required value="${esc(n.title_mr)}"></label>
+    <label>मजकूर (मराठी) *<textarea id="nfBmr" required>${esc(n.body_mr)}</textarea></label>
+    <label>शीर्षक (हिंदी)<input id="nfThi" value="${esc(n.title_hi)}"></label>
+    <label>विवरण (हिंदी)<textarea id="nfBhi">${esc(n.body_hi)}</textarea></label>
+    <label>Title (English)<input id="nfTen" value="${esc(n.title_en)}"></label>
+    <label>Text (English)<textarea id="nfBen">${esc(n.body_en)}</textarea></label>
+    <label class="check"><input type="checkbox" id="nfPub" ${n.id && !n.is_published ? "" : "checked"}> ${T("सभासदांना दाखवा", "सदस्यों को दिखाएँ", "Show to members")}</label>
+    <div class="row"><button class="btn" type="submit">${T("जतन करा", "सहेजें", "Save")}</button><button class="btn ghost" type="button" id="nfCancel">${T("रद्द", "रद्द", "Cancel")}</button></div>
+  </form>`;
+  $("#nfCancel").onclick = () => f.innerHTML = "";
+  $("#nf").onsubmit = async e => {
+    e.preventDefault();
+    const row = { notice_date: $("#nfDate").value, category: $("#nfCat").value, title_mr: $("#nfTmr").value.trim(), body_mr: $("#nfBmr").value.trim(),
+      title_hi: $("#nfThi").value.trim() || null, body_hi: $("#nfBhi").value.trim() || null, title_en: $("#nfTen").value.trim() || null, body_en: $("#nfBen").value.trim() || null, is_published: $("#nfPub").checked };
+    const q = n.id ? sb.from("notices").update(row).eq("id", n.id) : sb.from("notices").insert(row);
+    const { error } = await q;
+    if (error) return toast(errText(error));
+    toast(L("सूचना जतन झाली.", "सूचना सहेजी गई।", "Notice saved.")); VIEWS.notices();
+  };
+  f.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function confirmInline(btn, fn) {
+  if (btn.dataset.armed) { fn(); return; }
+  btn.dataset.armed = "1"; const old = btn.innerHTML;
+  btn.innerHTML = T("खात्री? पुन्हा दाबा", "पक्का? फिर दबाएँ", "Sure? Tap again");
+  setTimeout(() => { delete btn.dataset.armed; btn.innerHTML = old; }, 4000);
+}
+
+/* My flat (member) */
+const FLAT_FIELDS = [
+  ["owner_phone", T("मालकाचा मोबाईल", "मालिक का मोबाइल", "Owner mobile"), "tel"],
+  ["owner_email", T("मालकाचा ईमेल", "मालिक का ईमेल", "Owner email"), "email"],
+  ["occupancy", T("वापर", "उपयोग", "Occupied by"), "occ"],
+  ["tenant_name", T("भाडेकरूचे नाव", "किरायेदार का नाम", "Tenant name"), "text"],
+  ["tenant_phone", T("भाडेकरूचा मोबाईल", "किरायेदार का मोबाइल", "Tenant mobile"), "tel"],
+  ["tenant_agreement_till", T("करार मुदत (पर्यंत)", "करार अवधि (तक)", "Agreement valid till"), "date"],
+  ["tenant_police_verified", T("पोलीस व्हेरिफिकेशन झाले", "पुलिस सत्यापन हुआ", "Police verification done"), "bool"],
+  ["vehicles", T("वाहने (क्रमांक)", "वाहन (नंबर)", "Vehicles (numbers)"), "text"]
+];
+function flatForm(f, admin) {
+  const occ = { owner: T("मालक स्वतः", "मालिक स्वयं", "Owner"), tenant: T("भाडेकरू", "किरायेदार", "Tenant"), vacant: T("रिकामी", "खाली", "Vacant") };
+  return `<form class="panel" id="ff" data-flat="${f.flat_no}">
+    <div class="grid2">
+      ${admin ? `<label>${T("मालकाचे नाव", "मालिक का नाम", "Owner name")}<input id="ff_owner_name" value="${esc(f.owner_name)}"></label>
+      <label>${T("भाग प्रमाणपत्र क्र.", "शेयर प्रमाणपत्र क्र.", "Share cert. no.")}<input id="ff_share_cert_no" type="number" value="${esc(f.share_cert_no)}"></label>
+      <label>${T("भाग क्रमांक", "शेयर क्रमांक", "Share nos.")}<input id="ff_share_range" value="${esc(f.share_range)}"></label>` : ""}
+      ${FLAT_FIELDS.map(([k, lab, t]) => t === "occ"
+        ? `<label>${lab}<select id="ff_${k}">${Object.keys(occ).map(o => `<option value="${o}" ${f[k] === o ? "selected" : ""}>${o}</option>`).join("")}</select></label>`
+        : t === "bool" ? `<label class="check"><input type="checkbox" id="ff_${k}" ${f[k] ? "checked" : ""}> ${lab}</label>`
+        : `<label>${lab}<input id="ff_${k}" type="${t}" value="${esc(f[k])}"></label>`).join("")}
+    </div>
+    <div class="row">
+      <button class="btn" type="submit">${T("जतन करा", "सहेजें", "Save")}</button>
+      <button class="btn warn" type="button" id="ffClearTenant">${T("भाडेकरूची माहिती हटवा", "किरायेदार की जानकारी हटाएँ", "Remove tenant details")}</button>
+      ${admin ? `<button class="btn ghost" type="button" id="ffClose">${T("बंद", "बंद", "Close")}</button>` : ""}
+    </div>
+    <p class="small muted">${T("प्रत्येक बदल कामकाज नोंदीत तुमच्या नावाने नोंदवला जातो.", "हर बदलाव गतिविधि लॉग में आपके नाम से दर्ज होता है।", "Every change is recorded in the activity log under your login.")}</p>
+  </form>`;
+}
+function readFlatForm(admin) {
+  const row = {};
+  FLAT_FIELDS.forEach(([k, , t]) => { const el = $("#ff_" + k); row[k] = t === "bool" ? el.checked : (el.value.trim() || null); });
+  if (row.occupancy == null) row.occupancy = "owner";
+  if (admin) { row.owner_name = $("#ff_owner_name").value.trim(); row.share_cert_no = $("#ff_share_cert_no").value ? +$("#ff_share_cert_no").value : null; row.share_range = $("#ff_share_range").value.trim() || null; }
+  return row;
+}
+function wireFlatForm(flatNo, admin, after) {
+  $("#ff").onsubmit = async e => {
+    e.preventDefault();
+    const { error } = await sb.from("flats").update(readFlatForm(admin)).eq("flat_no", flatNo);
+    if (error) return toast(errText(error));
+    toast(L("माहिती जतन झाली.", "जानकारी सहेजी गई।", "Details saved.")); after();
+  };
+  $("#ffClearTenant").onclick = e => confirmInline(e.target.closest("button"), async () => {
+    const { error } = await sb.from("flats").update({ tenant_name: null, tenant_phone: null, tenant_agreement_till: null, tenant_police_verified: false, occupancy: "owner" }).eq("flat_no", flatNo);
+    if (error) return toast(errText(error));
+    toast(L("भाडेकरूची माहिती हटवली.", "किरायेदार की जानकारी हटाई गई।", "Tenant details removed.")); after();
+  });
+  if (admin) $("#ffClose").onclick = after;
+}
+VIEWS.myflat = async () => {
+  const v = $("#view");
+  v.innerHTML = `<div class="sechead"><h2>${T("माझी सदनिका", "मेरा फ्लैट", "My flat")}</h2></div><div id="mf" class="muted">…</div>`;
+  const { data, error } = await sb.from("flats").select("*").eq("flat_no", ME.flat_no).single();
+  if (error) { $("#mf").textContent = errText(error); return; }
+  $("#mf").className = "";
+  $("#mf").innerHTML = `<div class="panel"><div class="grid2">
+      <div><span class="small muted">${T("सदनिका", "फ्लैट", "Flat")}</span><br><b>${data.flat_no}</b></div>
+      <div><span class="small muted">${T("मालक", "मालिक", "Owner")}</span><br><b>${esc(data.owner_name)}</b></div>
+      <div><span class="small muted">${T("भाग प्रमाणपत्र", "शेयर प्रमाणपत्र", "Share certificate")}</span><br><b>${esc(data.share_cert_no)} (${esc(data.share_range)})</b></div>
+    </div><p class="small muted">${T("मालकाचे नाव किंवा भाग तपशील बदलायचा असल्यास व्यवस्थापन समितीकडे अर्ज करा.", "मालिक का नाम या शेयर विवरण बदलने के लिए प्रबंध समिति को आवेदन दें।", "To change the owner name or share details, apply to the Managing Committee.")}</p></div>` + flatForm(data, false);
+  wireFlatForm(data.flat_no, false, VIEWS.myflat);
+  $("#mf").insertAdjacentHTML("beforeend", `<div id="mfHist"></div><div id="mfLet"></div>`);
+  const [{ data: h }, { data: l }] = await Promise.all([
+    sb.from("ownership_history").select("*").eq("flat_no", ME.flat_no).order("seq"),
+    sb.from("issued_letters").select("*").eq("flat_no", ME.flat_no).order("issue_date", { ascending: false })
+  ]);
+  $("#mfHist").innerHTML = historyHTML(h || []);
+  if (l && l.length) $("#mfLet").innerHTML = `<h3>${T("संस्थेने दिलेली प्रमाणपत्रे", "संस्था द्वारा जारी प्रमाणपत्र", "Certificates issued by the Society")}</h3>` + lettersTable(l, false);
+};
+function historyHTML(h) {
+  if (!h.length) return "";
+  return `<h3>${T("मालकी इतिहास", "स्वामित्व इतिहास", "Ownership history")}</h3><ol class="panel" style="margin:0;padding-left:2rem">${h.map(r => `<li><b>${esc(r.owner_name)}</b> <span class="small muted">${r.from_date ? fmtDate(r.from_date) : esc(r.from_text || L("दिनांक नोंद नाही", "दिनांक दर्ज नहीं", "date not recorded"))}${r.is_current ? " · " + L("सध्याचे मालक", "वर्तमान मालिक", "current owner") : ""}</span></li>`).join("")}</ol>`;
+}
+const KINDS = { noc: "NOC", certificate: T("प्रमाणपत्र", "प्रमाणपत्र", "Certificate"), letter: T("पत्र", "पत्र", "Letter"), circular: T("परिपत्रक", "परिपत्र", "Circular"), resolution: T("ठराव", "प्रस्ताव", "Resolution") };
+function lettersTable(rows, admin) {
+  return `<div class="tablebox"><table><thead><tr><th>${T("दिनांक", "दिनांक", "Date")}</th><th>${T("प्रकार", "प्रकार", "Type")}</th><th>${T("विषय", "विषय", "Subject")}</th><th>${T("प्रति", "प्रति", "To")}</th>${admin ? `<th>${T("सदनिका", "फ्लैट", "Flat")}</th><th></th>` : ""}</tr></thead><tbody>${rows.map(r => `<tr>
+    <td class="num small">${r.issue_date ? fmtDate(r.issue_date) : "—"}</td><td><span class="tag">${KINDS[r.kind] || esc(r.kind)}</span></td>
+    <td><b>${esc(r.title)}</b>${r.summary ? `<br><span class="small muted">${esc(r.summary)}</span>` : ""}${admin && r.source_file ? `<br><span class="small muted">📁 ${esc(r.source_file)}</span>` : ""}</td>
+    <td class="small">${esc(r.addressed_to)}</td>${admin ? `<td class="num">${r.flat_no ?? ""}</td><td><button class="btn warn" data-dellet="${r.id}">${T("हटवा", "हटाएँ", "Delete")}</button></td>` : ""}</tr>`).join("")}</tbody></table></div>`;
+}
+
+/* Meetings & resolutions */
+const MTYPE = { AGM: T("वार्षिक सर्वसाधारण सभा", "वार्षिक आम सभा", "Annual General Meeting"), SGM: T("विशेष सर्वसाधारण सभा", "विशेष आम सभा", "Special General Meeting"), MC: T("व्यवस्थापन समिती सभा", "प्रबंध समिति बैठक", "Managing Committee meeting") };
+const RSTAT = { pending: T("प्रलंबित", "लंबित", "Pending"), in_progress: T("काम सुरू", "कार्य जारी", "In progress"), done: T("पूर्ण", "पूर्ण", "Done") };
+VIEWS.meetings = async () => {
+  const v = $("#view"); const admin = isAdmin();
+  v.innerHTML = `<div class="sechead"><h2>${T("सभा व ठराव", "सभा व प्रस्ताव", "Meetings & resolutions")}</h2>${admin ? `<button class="btn" type="button" id="mNew">${T("नवीन सभा", "नई सभा", "New meeting")}</button>` : ""}</div><div id="mForm"></div><div id="mList" class="muted">…</div>`;
+  const [{ data: ms, error }, { data: rs }] = await Promise.all([
+    sb.from("meetings").select("*").order("meeting_date", { ascending: false }),
+    sb.from("resolutions").select("*").order("item_no")
+  ]);
+  if (error) { $("#mList").textContent = errText(error); return; }
+  $("#mList").className = ""; $("#mList").style.display = "grid"; $("#mList").style.gap = "1rem";
+  $("#mList").innerHTML = ms.map((m, i) => {
+    const items = (rs || []).filter(r => r.meeting_id === m.id);
+    return `<details class="panel" ${i === 0 ? "open" : ""}><summary style="cursor:pointer;list-style:none">
+      <div class="row" style="justify-content:space-between"><h3>${MTYPE[m.meeting_type]} — ${fmtDate(m.meeting_date)}</h3><span class="tag">${items.length} ${T("ठराव", "प्रस्ताव", "items")}</span></div>
+      <p class="small muted">${esc([m.meeting_time, m.venue, m.chaired_by].filter(Boolean).join(" · "))}</p></summary>
+      <ol style="margin:.5rem 0 0;padding-left:1.4rem;display:grid;gap:.9rem">${items.map(r => `<li>
+        <b>${T(esc(r.title_mr || r.title_en), esc(r.title_mr || r.title_en), esc(r.title_en || r.title_mr))}</b>
+        ${r.status ? ` <span class="tag ${r.status === "done" ? "approved" : "pending"}">${RSTAT[r.status]}</span>` : ""}
+        ${r.discussion_mr || r.discussion_en ? `<p class="small muted"><b>${T("चर्चा", "चर्चा", "Discussion")}:</b> ${T(esc(r.discussion_mr || r.discussion_en), esc(r.discussion_mr || r.discussion_en), esc(r.discussion_en || r.discussion_mr))}</p>` : ""}
+        <p><b>${T("ठराव", "प्रस्ताव", "Resolution")}:</b> ${T(esc(r.resolution_mr || r.resolution_en), esc(r.resolution_mr || r.resolution_en), esc(r.resolution_en || r.resolution_mr))}</p>
+        ${r.action_note ? `<p class="small"><b>${T("कार्यवाही", "कार्यवाही", "Action taken")}:</b> ${esc(r.action_note)}</p>` : ""}
+        ${admin ? `<div class="row small"><select data-rstat="${r.id}" aria-label="Status"><option value="">—</option>${Object.keys(RSTAT).map(k => `<option value="${k}" ${r.status === k ? "selected" : ""}>${k}</option>`).join("")}</select><input data-rnote="${r.id}" placeholder="${L("कार्यवाही नोंद", "कार्यवाही नोट", "Action note")}" value="${esc(r.action_note)}" style="flex:1;min-width:10rem"><button class="btn ghost" data-rsave="${r.id}">${T("जतन", "सहेजें", "Save")}</button></div>` : ""}
+      </li>`).join("")}</ol>
+      ${admin ? `<div class="row" style="margin-top:.75rem"><button class="btn ghost" data-radd="${m.id}" data-next="${items.length + 1}">${T("ठराव जोडा", "प्रस्ताव जोड़ें", "Add resolution")}</button></div><div class="radd"></div>` : ""}
+    </details>`;
+  }).join("") || `<p class="muted">${T("नोंद नाही.", "कोई रिकॉर्ड नहीं।", "No meetings recorded.")}</p>`;
+  if (!admin) return;
+  $("#mNew").onclick = () => {
+    $("#mForm").innerHTML = `<form class="panel" id="mf2"><div class="grid2">
+      <label>${T("प्रकार", "प्रकार", "Type")}<select id="mfT"><option>AGM</option><option>SGM</option><option>MC</option></select></label>
+      <label>${T("दिनांक", "दिनांक", "Date")}<input type="date" id="mfD" required></label>
+      <label>${T("वेळ", "समय", "Time")}<input id="mfTi"></label>
+      <label>${T("स्थळ", "स्थान", "Venue")}<input id="mfV" value="Anand Vihar CHS terrace"></label>
+      <label>${T("अध्यक्षस्थानी", "अध्यक्षता", "Chaired by")}<input id="mfC"></label></div>
+      <div class="row"><button class="btn" type="submit">${T("जतन करा", "सहेजें", "Save")}</button></div></form>`;
+    $("#mf2").onsubmit = async e => { e.preventDefault();
+      const { error } = await sb.from("meetings").insert({ meeting_type: $("#mfT").value, meeting_date: $("#mfD").value, meeting_time: $("#mfTi").value || null, venue: $("#mfV").value || null, chaired_by: $("#mfC").value || null });
+      if (error) return toast(errText(error)); toast(L("सभा जोडली.", "सभा जोड़ी गई।", "Meeting added.")); VIEWS.meetings(); };
+  };
+  $("#mList").onclick = async e => {
+    const s = e.target.closest("[data-rsave]"), a = e.target.closest("[data-radd]");
+    if (s) { const id = s.dataset.rsave;
+      const { error } = await sb.from("resolutions").update({ status: document.querySelector(`[data-rstat="${id}"]`).value || null, action_note: document.querySelector(`[data-rnote="${id}"]`).value.trim() || null, updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) return toast(errText(error)); toast(L("जतन झाले.", "सहेजा गया।", "Saved.")); }
+    if (a) { const box = a.parentElement.nextElementSibling;
+      box.innerHTML = `<form class="panel" style="background:var(--indigo-soft)"><label>शीर्षक (मराठी)<input name="tm" required></label><label>ठराव (मराठी)<textarea name="rm" required></textarea></label><label>Title (English)<input name="te"></label><label>Resolution (English)<textarea name="re"></textarea></label><button class="btn" type="submit">${T("जोडा", "जोड़ें", "Add")}</button></form>`;
+      box.querySelector("form").onsubmit = async ev => { ev.preventDefault(); const f = ev.target;
+        const { error } = await sb.from("resolutions").insert({ meeting_id: +a.dataset.radd, item_no: +a.dataset.next, title_mr: f.tm.value, resolution_mr: f.rm.value, title_en: f.te.value || null, resolution_en: f.re.value || null });
+        if (error) return toast(errText(error)); toast(L("ठराव जोडला.", "प्रस्ताव जोड़ा गया।", "Resolution added.")); VIEWS.meetings(); }; }
+  };
+};
+
+/* Letters register (admin) */
+VIEWS.letters = async () => {
+  const v = $("#view");
+  v.innerHTML = `<div class="sechead"><h2>${T("जावक पत्रे व दिलेली प्रमाणपत्रे", "जावक पत्र व जारी प्रमाणपत्र", "Letters & certificates issued")}</h2><button class="btn" type="button" id="lNew">${T("नोंद जोडा", "प्रविष्टि जोड़ें", "Add entry")}</button></div>
+    <p class="small muted">${T("पोर्टलवर मंजूर झालेले NOC 'ना-हरकत प्रमाणपत्र' विभागात आहेत. येथे पूर्वीची व बाहेरून दिलेली पत्रे नोंदवा.", "पोर्टल पर स्वीकृत NOC 'अनापत्ति प्रमाणपत्र' अनुभाग में हैं। यहाँ पुराने व बाहर से जारी पत्र दर्ज करें।", "NOCs approved in the portal are under 'NOC requests'. Record earlier and offline letters here.")}</p><div id="lForm"></div><div id="lList" class="muted">…</div>`;
+  const load = async () => {
+    const { data, error } = await sb.from("issued_letters").select("*").order("issue_date", { ascending: false, nullsFirst: false });
+    if (error) { $("#lList").textContent = errText(error); return; }
+    $("#lList").className = ""; $("#lList").innerHTML = lettersTable(data, true);
+  };
+  $("#lNew").onclick = () => {
+    $("#lForm").innerHTML = `<form class="panel" id="lf"><div class="grid2">
+      <label>${T("दिनांक", "दिनांक", "Date")}<input type="date" name="d"></label>
+      <label>${T("प्रकार", "प्रकार", "Type")}<select name="k">${Object.keys(KINDS).map(k => `<option>${k}</option>`).join("")}</select></label>
+      <label>${T("जावक क्र.", "जावक क्र.", "Ref. no.")}<input name="r"></label>
+      <label>${T("सदनिका (असल्यास)", "फ्लैट (यदि हो)", "Flat (if any)")}<input name="f" type="number" min="1" max="30"></label></div>
+      <label>${T("विषय", "विषय", "Subject")}<input name="t" required></label>
+      <label>${T("प्रति", "प्रति", "Addressed to")}<input name="a"></label>
+      <label>${T("सारांश", "सारांश", "Summary")}<textarea name="s"></textarea></label>
+      <button class="btn" type="submit">${T("जतन करा", "सहेजें", "Save")}</button></form>`;
+    $("#lf").onsubmit = async e => { e.preventDefault(); const f = e.target;
+      const { error } = await sb.from("issued_letters").insert({ issue_date: f.d.value || null, kind: f.k.value, ref_no: f.r.value || null, flat_no: f.f.value ? +f.f.value : null, title: f.t.value, addressed_to: f.a.value || null, summary: f.s.value || null });
+      if (error) return toast(errText(error)); toast(L("नोंद जतन झाली.", "प्रविष्टि सहेजी गई।", "Entry saved.")); $("#lForm").innerHTML = ""; load(); };
+  };
+  $("#lList").onclick = e => { const b = e.target.closest("[data-dellet]"); if (b) confirmInline(b, async () => { const { error } = await sb.from("issued_letters").delete().eq("id", b.dataset.dellet); if (error) return toast(errText(error)); load(); }); };
+  load();
+};
+
+/* Documents */
+const DCATS = { share_certificate: T("भाग प्रमाणपत्र", "शेयर प्रमाणपत्र", "Share certificate"), minutes: T("इतिवृत्त", "कार्यवृत्त", "Minutes"), notice: T("सूचना", "सूचना", "Notice"), noc: "NOC", audit: T("लेखापरीक्षण", "ऑडिट", "Audit"), bye_laws: T("उपविधी", "उपनियम", "Bye-laws"), redevelopment: T("पुनर्विकास", "पुनर्विकास", "Redevelopment"), other: T("इतर", "अन्य", "Other") };
+const safeName = s => s.normalize("NFKD").replace(/[^\w.\-]+/g, "_").replace(/_+/g, "_").slice(-120);
+VIEWS.docs = async () => {
+  const v = $("#view"); const admin = isAdmin();
+  v.innerHTML = `<div class="sechead"><h2>${T("कागदपत्रे", "दस्तावेज़", "Documents")}</h2></div>
+    ${admin ? `<div class="panel" style="background:var(--sage-soft)">
+      <h3>${T("कागदपत्र अपलोड", "दस्तावेज़ अपलोड", "Upload a document")}</h3>
+      <div class="grid2">
+        <label>${T("प्रकार", "प्रकार", "Category")}<select id="uCat">${Object.keys(DCATS).map(k => `<option value="${k}">${k}</option>`).join("")}</select></label>
+        <label>${T("कोणाला दिसेल", "किसे दिखेगा", "Visible to")}<select id="uVis"><option value="members">${L("सर्व सभासद", "सभी सदस्य", "All members")}</option><option value="flat">${L("फक्त त्या सदनिकेला", "केवल उस फ्लैट को", "That flat only")}</option><option value="admins">${L("फक्त समिती", "केवल समिति", "Committee only")}</option></select></label>
+        <label>${T("सदनिका (आवश्यक असल्यास)", "फ्लैट (आवश्यक हो तो)", "Flat (if for one flat)")}<input id="uFlat" type="number" min="1" max="30"></label>
+        <label>${T("शीर्षक", "शीर्षक", "Title")}<input id="uTitle"></label>
+      </div>
+      <label>${T("फाइल (PDF/फोटो, कमाल 20 MB)", "फ़ाइल (PDF/फोटो, अधिकतम 20 MB)", "File (PDF/photo, max 20 MB)")}<input type="file" id="uFile" accept=".pdf,image/*"></label>
+      <div class="row"><button class="btn ok" type="button" id="uGo">${T("अपलोड करा", "अपलोड करें", "Upload")}</button></div>
+      <hr style="border:0;border-top:1px solid var(--line);width:100%">
+      <h3>${T("सर्व भाग प्रमाणपत्रे एकदम अपलोड करा (संगणकावरून)", "सभी शेयर प्रमाणपत्र एक साथ अपलोड करें (कंप्यूटर से)", "Bulk upload share certificates (from a computer)")}</h3>
+      <p class="small muted">${T("D:\\AVCHS_Records\\02_Members\\Flat_wise Cetificates हे फोल्डर निवडा. प्रत्येक 'Room No.X' फोल्डरमधील PDF त्या सदनिकेशी जोडली जाईल व फक्त त्या सदनिकेला दिसेल.", "D:\\AVCHS_Records\\02_Members\\Flat_wise Cetificates फ़ोल्डर चुनें। हर 'Room No.X' फ़ोल्डर की PDF उस फ्लैट से जुड़ेगी और केवल उसी फ्लैट को दिखेगी।", "Choose the folder D:\\AVCHS_Records\\02_Members\\Flat_wise Cetificates. PDFs in each 'Room No.X' folder are linked to that flat and visible only to that flat.")}</p>
+      <input type="file" id="uDir" webkitdirectory multiple aria-label="Folder">
+      <div id="uProg" class="small"></div>
+    </div>` : ""}
+    <div id="dList" class="muted">…</div>`;
+  const load = async () => {
+    const { data, error } = await sb.from("documents").select("*").order("flat_no", { nullsFirst: true }).order("uploaded_at", { ascending: false });
+    if (error) { $("#dList").textContent = errText(error); return; }
+    $("#dList").className = "";
+    $("#dList").innerHTML = data.length ? `<div class="tablebox"><table><thead><tr><th>${T("सदनिका", "फ्लैट", "Flat")}</th><th>${T("प्रकार", "प्रकार", "Category")}</th><th>${T("शीर्षक", "शीर्षक", "Title")}</th><th></th></tr></thead><tbody>${data.map(d => `<tr>
+      <td class="num">${d.flat_no ?? "—"}</td><td><span class="tag">${DCATS[d.category] || esc(d.category)}</span></td><td>${esc(d.title)}${admin ? ` <span class="small muted">· ${esc(d.visibility)}</span>` : ""}</td>
+      <td class="row"><button class="btn ghost" data-open="${esc(d.storage_path)}">${T("उघडा", "खोलें", "Open")}</button>${admin ? `<button class="btn warn" data-deldoc="${d.id}" data-path="${esc(d.storage_path)}">${T("हटवा", "हटाएँ", "Delete")}</button>` : ""}</td></tr>`).join("")}</tbody></table></div>`
+      : `<p class="muted">${T("अद्याप कागदपत्रे अपलोड केलेली नाहीत.", "अभी कोई दस्तावेज़ अपलोड नहीं।", "No documents uploaded yet.")}</p>`;
+  };
+  $("#dList").onclick = async e => {
+    const o = e.target.closest("[data-open]"), d = e.target.closest("[data-deldoc]");
+    if (o) { const w = window.open("", "_blank"); const { data, error } = await sb.storage.from("society-docs").createSignedUrl(o.dataset.open, 300);
+      if (error) { if (w) w.close(); return toast(errText(error)); } if (w) w.location = data.signedUrl; else location.href = data.signedUrl; }
+    if (d) confirmInline(d, async () => {
+      await sb.storage.from("society-docs").remove([d.dataset.path]);
+      const { error } = await sb.from("documents").delete().eq("id", d.dataset.deldoc); if (error) return toast(errText(error)); load(); });
+  };
+  if (admin) {
+    const putOne = async (file, path, row) => {
+      const up = await sb.storage.from("society-docs").upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
+      if (up.error) throw up.error;
+      const ins = await sb.from("documents").upsert({ ...row, storage_path: path }, { onConflict: "storage_path" });
+      if (ins.error) throw ins.error;
+    };
+    $("#uGo").onclick = async () => {
+      const f = $("#uFile").files[0]; if (!f) return toast(L("फाइल निवडा.", "फ़ाइल चुनें।", "Choose a file."));
+      if (f.size > 20 * 1024 * 1024) return toast(L("फाइल 20 MB पेक्षा मोठी आहे.", "फ़ाइल 20 MB से बड़ी है।", "File is larger than 20 MB."));
+      const vis = $("#uVis").value, flat = $("#uFlat").value ? +$("#uFlat").value : null;
+      if (vis === "flat" && !flat) return toast(L("सदनिका क्रमांक टाका.", "फ्लैट नंबर डालें।", "Enter the flat number."));
+      const folder = vis === "flat" ? `flats/${flat}` : vis === "members" ? "members" : "admins";
+      try { await putOne(f, `${folder}/${Date.now()}_${safeName(f.name)}`, { flat_no: flat, category: $("#uCat").value, title: $("#uTitle").value.trim() || f.name, visibility: vis });
+        toast(L("अपलोड झाले.", "अपलोड हुआ।", "Uploaded.")); load(); } catch (e) { toast(errText(e)); }
+    };
+    $("#uDir").onchange = async e => {
+      const files = [...e.target.files].filter(f => !/desktop\.ini$|^~\$/i.test(f.name));
+      const byFlat = {};
+      for (const f of files) {
+        const m = (f.webkitRelativePath || f.name).match(/Room\s*No\.?\s*(\d{1,2})[^/]*\//i); if (!m) continue;
+        const n = +m[1]; if (n < 1 || n > 30) continue;
+        (byFlat[n] = byFlat[n] || []).push(f);
+      }
+      const jobs = [];
+      Object.entries(byFlat).forEach(([n, fs]) => { const pdfs = fs.filter(f => /\.pdf$/i.test(f.name)); (pdfs.length ? pdfs : fs.filter(f => /\.(jpe?g|png)$/i.test(f.name))).forEach(f => jobs.push([+n, f])); });
+      const p = $("#uProg"); let ok = 0, bad = 0;
+      for (const [i, [n, f]] of jobs.entries()) {
+        p.textContent = `${i + 1}/${jobs.length} · ${L("सदनिका", "फ्लैट", "Flat")} ${n} · ${f.name}`;
+        if (f.size > 20 * 1024 * 1024) { bad++; continue; }
+        try { await putOne(f, `flats/${n}/${safeName(f.name)}`, { flat_no: n, category: "share_certificate", title: f.name.replace(/\.[^.]+$/, ""), visibility: "flat" }); ok++; } catch (er) { bad++; console.warn(f.name, er); }
+      }
+      p.textContent = `${L("पूर्ण", "पूर्ण", "Done")}: ${ok} ${L("अपलोड", "अपलोड", "uploaded")}${bad ? `, ${bad} ${L("अयशस्वी", "विफल", "failed")}` : ""}.`;
+      load();
+    };
+  }
+  load();
+};
+
+/* Directory (member) */
+VIEWS.directory = async () => {
+  const v = $("#view");
+  v.innerHTML = `<div class="sechead"><h2>${T("सभासद यादी", "सदस्य सूची", "Member list")}</h2></div><div id="dl" class="muted">…</div>`;
+  const { data, error } = await sb.rpc("member_directory");
+  if (error) { $("#dl").textContent = errText(error); return; }
+  $("#dl").className = "tablebox";
+  $("#dl").innerHTML = `<table><thead><tr><th>${T("सदनिका", "फ्लैट", "Flat")}</th><th>${T("मालक", "मालिक", "Owner")}</th></tr></thead><tbody class="num">${data.map(r => `<tr><td>${r.flat_no}</td><td>${esc(r.owner_name)}</td></tr>`).join("")}</tbody></table>`;
+};
+
+/* Flat register (admin) */
+VIEWS.flats = async () => {
+  const v = $("#view");
+  v.innerHTML = `<div class="sechead"><h2>${T("सदनिका नोंदवही", "फ्लैट रजिस्टर", "Flat register")}</h2><button class="btn ghost" type="button" id="exp">${T("सर्व माहिती डाउनलोड", "सारा डेटा डाउनलोड", "Download all data")}</button></div><div id="fEdit"></div><div id="fl" class="muted">…</div>`;
+  $("#exp").onclick = exportAll;
+  const { data, error } = await sb.from("flats").select("*").order("flat_no");
+  if (error) { $("#fl").textContent = errText(error); return; }
+  $("#fl").className = "tablebox";
+  $("#fl").innerHTML = `<table><thead><tr><th>${T("सदनिका", "फ्लैट", "Flat")}</th><th>${T("मालक", "मालिक", "Owner")}</th><th>${T("मोबाईल", "मोबाइल", "Mobile")}</th><th>${T("वापर", "उपयोग", "Occupied by")}</th><th>${T("भाडेकरू", "किरायेदार", "Tenant")}</th><th>${T("वाहने", "वाहन", "Vehicles")}</th><th></th></tr></thead>
+    <tbody>${data.map(f => `<tr><td class="num">${f.flat_no}</td><td>${esc(f.owner_name)}</td><td class="num">${esc(f.owner_phone)}</td><td>${esc(f.occupancy)}</td><td>${esc(f.tenant_name)}${f.tenant_name ? `<br><span class="small muted">${f.tenant_police_verified ? "✓ police" : "✗ police"}${f.tenant_agreement_till ? " · till " + fmtDate(f.tenant_agreement_till) : ""}</span>` : ""}</td><td>${esc(f.vehicles)}</td><td><button class="btn ghost" data-f="${f.flat_no}">${T("बदला", "बदलें", "Edit")}</button></td></tr>`).join("")}</tbody></table>`;
+  $("#fl").onclick = e => {
+    const b = e.target.closest("[data-f]"); if (!b) return;
+    const f = data.find(x => x.flat_no == b.dataset.f);
+    $("#fEdit").innerHTML = `<h3>${T("सदनिका", "फ्लैट", "Flat")} ${f.flat_no}</h3>` + flatForm(f, true);
+    wireFlatForm(f.flat_no, true, VIEWS.flats);
+    $("#fEdit").scrollIntoView({ behavior: "smooth" });
+  };
+};
+
+/* NOC */
+const PURPOSES = {
+  sale: T("सदनिका विक्री", "फ्लैट बिक्री", "Sale of flat"),
+  loan: T("बँक कर्ज / तारण", "बैंक ऋण / गिरवी", "Bank loan / mortgage"),
+  passport: T("पासपोर्ट / रहिवासी दाखला", "पासपोर्ट / निवास प्रमाण", "Passport / residence proof"),
+  police_verification: T("पोलीस व्हेरिफिकेशन", "पुलिस सत्यापन", "Police verification"),
+  electricity: T("वीज मीटर (महावितरण)", "बिजली मीटर (महावितरण)", "Electricity meter (MSEDCL)"),
+  gas: T("पाइप गॅस (MGL)", "पाइप गैस (MGL)", "Piped gas (MGL)"),
+  tenant: T("भाडेकरू ठेवणे", "किरायेदार रखना", "Letting to a tenant"),
+  other: T("इतर", "अन्य", "Other")
+};
+function letterTemplate(r, f) {
+  const who = f.owner_name, flat = `Flat No. ${f.flat_no}`;
+  const addr = `${flat}, Anand Vihar Co-op. Hsg. Society Ltd., Anand Nagar Bldg. No. 3, Pandit Dindayal Road, Dombivli (West), Dist. Thane – 421 201`;
+  const extra = r.details ? `\n\n${r.details}` : "";
+  const T2 = {
+    sale: [`No Objection Certificate for Sale of ${flat}`, `This is to certify that ${who} is a bonafide member of Anand Vihar Co-op. Hsg. Society Ltd. and holds ${flat}, together with Share Certificate No. ${f.share_cert_no ?? "____"} for shares bearing distinctive nos. ${f.share_range ?? "____"}.\n\nThe Society has no objection to the proposed sale and transfer of the said flat, subject to the clearance of all dues payable to the Society and compliance with the provisions of the Bye-laws of the Society and the Maharashtra Co-operative Societies Act, 1960 in respect of transfer of shares and interest in the property.`],
+    loan: [`No Objection Certificate for Loan against ${flat}`, `This is to certify that ${who} is a bonafide member of Anand Vihar Co-op. Hsg. Society Ltd. and holds ${flat}, together with Share Certificate No. ${f.share_cert_no ?? "____"}.\n\nThe Society has no objection to the member availing a loan by mortgaging the said flat with ${r.addressed_to || "the bank / financial institution"}. The Society shall note the charge of the bank in its records on receipt of the necessary intimation, as provided in the Bye-laws.`],
+    passport: [`Residence Certificate`, `This is to certify that ${who} is a member of Anand Vihar Co-op. Hsg. Society Ltd. and resides at ${addr}.\n\nThis certificate is issued on the request of the member for the purpose of passport application.`],
+    police_verification: [`Certificate for Police Verification`, `This is to certify that ${who} is a member of Anand Vihar Co-op. Hsg. Society Ltd. and holds ${flat} in the Society's building at Anand Nagar Bldg. No. 3, Pandit Dindayal Road, Dombivli (West).\n\nThis certificate is issued on the request of the member for the purpose of police verification.`],
+    electricity: [`No Objection Certificate for Electricity Connection`, `This is to certify that ${who} is a member of Anand Vihar Co-op. Hsg. Society Ltd. and holds ${flat}.\n\nThe Society has no objection to the member applying to Maharashtra State Electricity Distribution Co. Ltd. (MSEDCL) for a new electricity connection / change of name on the electricity meter for the said flat.`],
+    gas: [`No Objection Certificate for Piped Gas Connection`, `This is to certify that ${who} is a member of Anand Vihar Co-op. Hsg. Society Ltd. and holds ${flat}.\n\nThe Society has no objection to Mahanagar Gas Limited providing a piped natural gas connection to the said flat, subject to the work being carried out safely and the common areas being restored to their original condition.`],
+    tenant: [`Intimation of Letting of ${flat}`, `This is to certify that ${who}, member of Anand Vihar Co-op. Hsg. Society Ltd., has informed the Society in writing of letting ${flat} on Leave & Licence basis.\n\nThe member has been advised to register the Leave & Licence agreement and to complete the police verification of the tenant, and to submit copies of the same to the Society office, as required under the Bye-laws.`],
+    other: [`Certificate`, `This is to certify that ${who} is a member of Anand Vihar Co-op. Hsg. Society Ltd. and holds ${flat}.`]
+  }[r.purpose];
+  return `Subject: ${T2[0]}\n\n${T2[1]}${extra}\n\nThis certificate is issued at the request of the member without any liability on the part of the Society.`;
+}
+function letterHTML(r, f) {
+  return `<div class="letter">
+    <div class="lh"><b>${SOC.name}</b><span>${SOC.reg}</span></div>
+    <div class="addr">${SOC.addr}</div>
+    <div class="meta"><span>Ref. No.: ${esc(r.ref_no || "Draft")}</span><span>Date: ${fmtDate(r.decided_at || new Date())}</span></div>
+    ${r.addressed_to ? `<p>To,\n${esc(r.addressed_to)}</p>` : `<p>TO WHOMSOEVER IT MAY CONCERN</p>`}
+    ${esc(r.letter_text || letterTemplate(r, f)).split(/\n\n+/).map(p => `<p>${p}</p>`).join("")}
+    <div class="sign">For Anand Vihar Co-op. Hsg. Society Ltd.<br><br><br><br>Chairman / Secretary</div>
+  </div>`;
+}
+function printLetter(html) { $("#printArea").innerHTML = html; window.print(); }
+
+VIEWS.noc = async () => {
+  const v = $("#view"); const admin = isAdmin();
+  v.innerHTML = `<div class="sechead"><h2>${T("ना-हरकत प्रमाणपत्र (NOC)", "अनापत्ति प्रमाणपत्र (NOC)", "NOC requests")}</h2>${admin ? "" : `<button class="btn" type="button" id="nocNew">${T("नवीन अर्ज", "नया आवेदन", "New request")}</button>`}</div><div id="nocForm"></div><div id="nocList" class="muted">…</div>`;
+  const [{ data, error }, flatsRes] = await Promise.all([
+    sb.from("noc_requests").select("*").order("requested_at", { ascending: false }),
+    admin ? sb.from("flats").select("*") : sb.from("flats").select("*").eq("flat_no", ME.flat_no)
+  ]);
+  if (error) { $("#nocList").textContent = errText(error); return; }
+  const flats = Object.fromEntries((flatsRes.data || []).map(f => [f.flat_no, f]));
+  if (!admin) $("#nocNew").onclick = () => {
+    $("#nocForm").innerHTML = `<form class="panel" id="nocF">
+      <label>${T("कशासाठी", "किस लिए", "Purpose")}<select id="nocP">${Object.entries(PURPOSES).map(([k, l]) => `<option value="${k}">${k.replace("_", " ")}</option>`).join("")}</select></label>
+      <label>${T("कोणाला उद्देशून (उदा. बँकेचे नाव) — ऐच्छिक", "किसे संबोधित (जैसे बैंक का नाम) — वैकल्पिक", "Addressed to (e.g. bank name) — optional")}<input id="nocTo"></label>
+      <label>${T("अधिक माहिती", "अधिक जानकारी", "Details")}<textarea id="nocD"></textarea></label>
+      <div class="row"><button class="btn" type="submit">${T("अर्ज पाठवा", "आवेदन भेजें", "Submit request")}</button><button class="btn ghost" type="button" id="nocC">${T("रद्द", "रद्द", "Cancel")}</button></div>
+    </form>`;
+    $("#nocC").onclick = () => $("#nocForm").innerHTML = "";
+    $("#nocF").onsubmit = async e => {
+      e.preventDefault();
+      const { error } = await sb.from("noc_requests").insert({ flat_no: ME.flat_no, purpose: $("#nocP").value, addressed_to: $("#nocTo").value.trim() || null, details: $("#nocD").value.trim() || null });
+      if (error) return toast(errText(error));
+      toast(L("अर्ज पाठवला.", "आवेदन भेजा गया।", "Request submitted.")); VIEWS.noc();
+    };
+  };
+  const st = s => `<span class="tag ${s}">${{ pending: T("प्रलंबित", "लंबित", "Pending"), approved: T("मंजूर", "स्वीकृत", "Approved"), rejected: T("नामंजूर", "अस्वीकृत", "Rejected") }[s]}</span>`;
+  $("#nocList").className = ""; $("#nocList").style.display = "grid"; $("#nocList").style.gap = ".75rem";
+  $("#nocList").innerHTML = data.length ? data.map(r => `<div class="panel" data-id="${r.id}">
+      <div class="row" style="justify-content:space-between"><b>${T("सदनिका", "फ्लैट", "Flat")} ${r.flat_no} · ${PURPOSES[r.purpose]}</b>${st(r.status)}</div>
+      <p class="small muted">${fmtDT(r.requested_at)}${r.ref_no ? " · " + esc(r.ref_no) : ""}${r.addressed_to ? " · " + esc(r.addressed_to) : ""}</p>
+      ${r.details ? `<p>${esc(r.details)}</p>` : ""}
+      ${r.admin_remarks ? `<p class="small"><b>${T("समितीचा शेरा", "समिति की टिप्पणी", "Committee remarks")}:</b> ${esc(r.admin_remarks)}</p>` : ""}
+      <div class="row">
+        ${r.status === "approved" ? `<button class="btn" data-print="${r.id}">${T("प्रमाणपत्र पहा / छापा", "प्रमाणपत्र देखें / प्रिंट", "View / print certificate")}</button>` : ""}
+        ${admin && r.status === "pending" ? `<button class="btn ok" data-review="${r.id}">${T("तपासा व निर्णय द्या", "जाँचें व निर्णय दें", "Review & decide")}</button>` : ""}
+        ${(!admin && r.status === "pending") || admin ? `<button class="btn warn" data-delnoc="${r.id}">${admin ? T("हटवा", "हटाएँ", "Delete") : T("अर्ज मागे घ्या", "आवेदन वापस लें", "Withdraw")}</button>` : ""}
+      </div><div class="rev"></div>
+    </div>`).join("") : `<p class="muted">${T("अद्याप कोणताही अर्ज नाही.", "अभी कोई आवेदन नहीं।", "No requests yet.")}</p>`;
+  $("#nocList").onclick = async e => {
+    const p = e.target.closest("[data-print]"), rv = e.target.closest("[data-review]"), dl = e.target.closest("[data-delnoc]");
+    if (p) { const r = data.find(x => x.id == p.dataset.print); const f = flats[r.flat_no] || (await sb.from("flats").select("*").eq("flat_no", r.flat_no).single()).data; printLetter(letterHTML(r, f)); }
+    if (dl) confirmInline(dl, async () => { const { error } = await sb.from("noc_requests").delete().eq("id", dl.dataset.delnoc); if (error) return toast(errText(error)); toast(L("अर्ज हटवला.", "आवेदन हटाया गया।", "Request removed.")); VIEWS.noc(); });
+    if (rv) {
+      const r = data.find(x => x.id == rv.dataset.review), f = flats[r.flat_no];
+      const box = rv.closest(".panel").querySelector(".rev");
+      box.innerHTML = `<div class="panel" style="background:var(--teal-soft)">
+        <label>${T("कोणाला उद्देशून", "किसे संबोधित", "Addressed to")}<input id="rvTo" value="${esc(r.addressed_to)}"></label>
+        <label>${T("प्रमाणपत्राचा मजकूर (बदलू शकता)", "प्रमाणपत्र का पाठ (बदल सकते हैं)", "Certificate text (you can edit)")}<textarea id="rvTxt" style="min-height:14rem">${esc(letterTemplate(r, f))}</textarea></label>
+        <label>${T("शेरा (सभासदाला दिसेल)", "टिप्पणी (सदस्य को दिखेगी)", "Remarks (visible to member)")}<input id="rvRem"></label>
+        <div class="row"><button class="btn ok" id="rvOk">${T("मंजूर करा", "स्वीकृत करें", "Approve")}</button><button class="btn warn" id="rvNo">${T("नामंजूर करा", "अस्वीकृत करें", "Reject")}</button><button class="btn ghost" id="rvPrev">${T("नमुना पहा", "पूर्वावलोकन", "Preview")}</button></div>
+      </div>`;
+      const decide = async status => {
+        const upd = { status, admin_remarks: $("#rvRem").value.trim() || null, addressed_to: $("#rvTo").value.trim() || null };
+        if (status === "approved") upd.letter_text = $("#rvTxt").value;
+        const { error } = await sb.from("noc_requests").update(upd).eq("id", r.id);
+        if (error) return toast(errText(error));
+        toast(status === "approved" ? L("मंजूर केले.", "स्वीकृत किया।", "Approved.") : L("नामंजूर केले.", "अस्वीकृत किया।", "Rejected.")); VIEWS.noc();
+      };
+      $("#rvOk").onclick = () => decide("approved");
+      $("#rvNo").onclick = () => decide("rejected");
+      $("#rvPrev").onclick = () => printLetter(letterHTML({ ...r, addressed_to: $("#rvTo").value, letter_text: $("#rvTxt").value }, f));
+    }
+  };
+};
+
+/* Activity log (admin) */
+VIEWS.log = async () => {
+  const v = $("#view");
+  v.innerHTML = `<div class="sechead"><h2>${T("कामकाज नोंद", "गतिविधि लॉग", "Activity log")}</h2>
+    <div class="row"><select id="lgUser" aria-label="User"><option value="">${L("सर्व वापरकर्ते", "सभी उपयोगकर्ता", "All users")}</option></select>
+    <select id="lgAct" aria-label="Action"><option value="">${L("सर्व कृती", "सभी कार्य", "All actions")}</option>${["INSERT", "UPDATE", "DELETE", "LOGIN", "PASSWORD_CHANGED", "PASSWORD_RESET"].map(a => `<option>${a}</option>`).join("")}</select></div></div>
+    <p class="small muted">${T("ही नोंद कोणालाही बदलता किंवा हटवता येत नाही.", "इस लॉग को कोई बदल या हटा नहीं सकता।", "This log cannot be edited or deleted by anyone using the portal.")}</p>
+    <div id="lg" class="muted">…</div>`;
+  const load = async () => {
+    let q = sb.from("activity_log").select("*").order("at", { ascending: false }).limit(300);
+    if ($("#lgUser").value) q = q.eq("actor_username", $("#lgUser").value);
+    if ($("#lgAct").value) q = q.eq("action", $("#lgAct").value);
+    const { data, error } = await q;
+    if (error) { $("#lg").textContent = errText(error); return; }
+    $("#lg").className = "tablebox";
+    const name = { flats: L("सदनिका", "फ्लैट", "Flat"), notices: L("सूचना", "सूचना", "Notice"), noc_requests: "NOC", profiles: L("लॉगिन", "लॉगिन", "Login") };
+    $("#lg").innerHTML = `<table><thead><tr><th>${T("वेळ", "समय", "When")}</th><th>${T("कोणी", "किसने", "Who")}</th><th>${T("कृती", "कार्य", "Action")}</th><th>${T("काय", "क्या", "What")}</th><th>${T("बदल", "बदलाव", "Changes")}</th></tr></thead><tbody>${data.map(r => `<tr>
+      <td class="num small">${fmtDT(r.at)}</td><td>${esc(r.actor_username || L("Supabase डॅशबोर्ड (मालक)", "Supabase डैशबोर्ड (मालिक)", "Supabase dashboard (owner)"))}</td>
+      <td><span class="act ${r.action}">${r.action}</span></td>
+      <td>${r.table_name ? esc(name[r.table_name] || r.table_name) + " " + esc(r.record_id || "") : ""}</td>
+      <td>${diff(r)}</td></tr>`).join("")}</tbody></table>`;
+  };
+  const { data: users } = await sb.rpc("admin_logins");
+  (users || []).forEach(u => $("#lgUser").insertAdjacentHTML("beforeend", `<option>${esc(u.username)}</option>`));
+  $("#lgUser").onchange = $("#lgAct").onchange = load;
+  load();
+};
+function diff(r) {
+  const skip = ["updated_at", "created_at", "requested_at", "id"];
+  if (r.action === "UPDATE" && r.old_data && r.new_data) {
+    const ks = Object.keys(r.new_data).filter(k => !skip.includes(k) && JSON.stringify(r.old_data[k]) !== JSON.stringify(r.new_data[k]));
+    return `<div class="diff">${ks.map(k => `<span>${esc(k)}: <del>${esc(short(r.old_data[k]))}</del> → <ins>${esc(short(r.new_data[k]))}</ins></span>`).join("") || "—"}</div>`;
+  }
+  const d = r.new_data || r.old_data; if (!d) return "";
+  const keys = ["title_mr", "owner_name", "purpose", "status", "username", "flat_no"].filter(k => d[k] != null);
+  return `<div class="diff">${keys.map(k => `<span>${esc(k)}: ${esc(short(d[k]))}</span>`).join("")}</div>`;
+}
+const short = x => { const s = x == null ? "∅" : String(x); return s.length > 60 ? s.slice(0, 57) + "…" : s; };
+
+/* Logins (admin) */
+VIEWS.logins = async () => {
+  const v = $("#view");
+  v.innerHTML = `<div class="sechead"><h2>${T("लॉगिन व पासवर्ड", "लॉगिन व पासवर्ड", "Logins & passwords")}</h2></div>
+    <p class="small muted">${T("सभासदाने पासवर्ड विसरल्यास येथे नवीन तात्पुरता पासवर्ड तयार करा. तो फक्त एकदाच दिसेल; सभासदाला पहिल्या लॉग इनला तो बदलावा लागेल.", "सदस्य पासवर्ड भूल जाए तो यहाँ नया अस्थायी पासवर्ड बनाएँ। यह केवल एक बार दिखेगा; सदस्य को पहली बार लॉग इन पर बदलना होगा।", "If a member forgets their password, create a new temporary one here. It is shown once only, and the member must change it at next login.")}</p>
+    <div id="lgn" class="muted">…</div>`;
+  const { data, error } = await sb.rpc("admin_logins");
+  if (error) { $("#lgn").textContent = errText(error); return; }
+  $("#lgn").className = "tablebox";
+  $("#lgn").innerHTML = `<table><thead><tr><th>${T("वापरकर्ता", "उपयोगकर्ता", "Username")}</th><th>${T("भूमिका", "भूमिका", "Role")}</th><th>${T("शेवटचे लॉग इन", "अंतिम लॉग इन", "Last login")}</th><th>${T("स्थिती", "स्थिति", "Status")}</th><th></th></tr></thead><tbody>${data.map(u => `<tr>
+    <td><b>${esc(u.username)}</b>${u.flat_no ? ` <span class="small muted">· ${u.flat_no}</span>` : ""}</td><td>${esc(u.role)}</td>
+    <td class="small num">${u.last_sign_in_at ? fmtDT(u.last_sign_in_at) : "—"}</td>
+    <td>${u.must_change_password ? `<span class="tag pending">${T("पहिला पासवर्ड", "पहला पासवर्ड", "First password")}</span>` : `<span class="tag approved">${T("स्वतःचा पासवर्ड", "अपना पासवर्ड", "Own password")}</span>`}</td>
+    <td><button class="btn ghost" data-reset="${esc(u.username)}">${T("पासवर्ड रीसेट", "पासवर्ड रीसेट", "Reset password")}</button><div class="pwout num"></div></td></tr>`).join("")}</tbody></table>`;
+  $("#lgn").onclick = e => {
+    const b = e.target.closest("[data-reset]"); if (!b) return;
+    confirmInline(b, async () => {
+      const { data: pw, error } = await sb.rpc("admin_reset_password", { p_username: b.dataset.reset });
+      if (error) return toast(errText(error));
+      b.nextElementSibling.innerHTML = `<b>${esc(pw)}</b> <span class="small muted">${T("(आत्ताच लिहून घ्या)", "(अभी लिख लें)", "(note it now)")}</span>`;
+      b.remove();
+    });
+  };
+};
+
+/* Export (admin) */
+async function exportAll() {
+  const out = {};
+  for (const t of ["flats", "notices", "noc_requests", "meetings", "resolutions", "ownership_history", "issued_letters", "documents", "activity_log"]) {
+    const { data, error } = await sb.from(t).select("*");
+    if (error) return toast(errText(error)); out[t] = data;
+  }
+  out.exported_at = new Date().toISOString(); out.exported_by = ME.username;
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `AVCHS_backup_${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/* start */
+sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_OUT") { ME = null; show("#vLogin"); } });
+boot();
+</script>
+</body>
+</html>
