@@ -891,7 +891,14 @@ VIEWS.bills = async () => {
       else if (isAdmin()) box.innerHTML = `<p class="small muted">${T("डॅशबोर्ड जोडण्यासाठी: कागदपत्रे → कागदपत्र अपलोड → प्रकार 'वीज बिल' → HTML फाइल निवडा.", "डैशबोर्ड जोड़ने हेतु: दस्तावेज़ → दस्तावेज़ अपलोड → प्रकार 'बिजली बिल' → HTML फ़ाइल चुनें।", "To add the dashboard: Documents → Upload a document → Category 'Electricity bills' → choose the HTML file.")}</p>`;
     });
   }
-  const { data, error } = await sb.from("bills").select("*").eq("bill_type", BTYPE).order("account_no").order("bill_month", { ascending: false, nullsFirst: false }).order("paid_date", { ascending: false });
+  const [{ data, error }, { data: bdocs }] = await Promise.all([
+    sb.from("bills").select("*").eq("bill_type", BTYPE).order("account_no").order("bill_month", { ascending: false, nullsFirst: false }).order("paid_date", { ascending: false }),
+    sb.from("documents").select("title,storage_path,category").in("category", ["electricity_bill", "payment_receipt", "property_tax"])
+  ]);
+  const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const findDoc = (acct, re) => (bdocs || []).find(d => d.title.includes(acct) && re.test(d.title.replace(/\s+/g, "")));
+  const billDoc = r => r.bill_month ? findDoc(r.account_no, new RegExp(MON[+r.bill_month.slice(5, 7) - 1] + r.bill_month.slice(0, 4) + "_Bill", "i")) : null;
+  const rcptDoc = r => r.paid_date ? findDoc(r.account_no, new RegExp("Receipt_" + r.paid_date.slice(8, 10) + MON[+r.paid_date.slice(5, 7) - 1] + r.paid_date.slice(0, 4), "i")) : null;
   if (error) { $("#bBody").textContent = errText(error); return; }
   const accts = [...new Set(data.map(r => r.account_no))];
   $("#bBody").className = ""; $("#bBody").style.display = "grid"; $("#bBody").style.gap = "1.25rem";
@@ -917,10 +924,12 @@ VIEWS.bills = async () => {
           <td>${rs(r.paid_amount)}</td><td class="small">${r.paid_date ? fmtDate(r.paid_date) : "—"}</td>
           <td><span class="tag ${/On Time|Paid/i.test(r.payment_status || "") ? "approved" : /No Payment/i.test(r.payment_status || "") ? "rejected" : "pending"}">${esc(r.payment_status || "—")}</span></td>
           ${BTYPE === "electricity" ? `<td>${rs(r.savings)}</td>` : ""}
-          <td class="small">${esc(r.receipt_no || "")}${r.bank_ref ? `<br><span class="muted">${esc(r.bank_ref)}</span>` : ""}${r.payment_mode ? `<br><span class="muted">${esc(r.payment_mode)}</span>` : ""}</td>
+          <td class="small">${esc(r.receipt_no || "")}${r.bank_ref ? `<br><span class="muted">${esc(r.bank_ref)}</span>` : ""}${r.payment_mode ? `<br><span class="muted">${esc(r.payment_mode)}</span>` : ""}
+            <div class="row" style="margin-top:.25rem">${(() => { const b = billDoc(r), c = rcptDoc(r); return (b ? `<button class="btn ghost" style="padding:.1rem .5rem" data-open="${esc(b.storage_path)}">${T("बिल", "बिल", "Bill")}</button>` : "") + (c ? `<button class="btn ghost" style="padding:.1rem .5rem" data-open="${esc(c.storage_path)}">${T("पावती", "रसीद", "Receipt")}</button>` : ""); })()}</div></td>
           ${admin ? `<td><div class="row"><button class="btn ghost" data-bedit="${r.id}">${T("बदला", "बदलें", "Edit")}</button><button class="btn warn" data-bdel="${r.id}">${T("हटवा", "हटाएँ", "Delete")}</button></div></td>` : ""}</tr>`).join("")}</tbody></table></div>
     </section>`;
   }).join("") : `<p class="muted">${T("या प्रकारचे बिल अद्याप नोंदवलेले नाही.", "इस प्रकार का कोई बिल दर्ज नहीं।", "No bills of this type recorded yet.")}</p>`;
+  $("#bBody").addEventListener("click", e => { const op = e.target.closest("[data-open]"); if (op) openStored(op.dataset.open); });
   if (!admin) return;
   $("#bNew").onclick = () => billForm({ bill_type: BTYPE, account_no: accts[0] || "", account_name: data[0]?.account_name || "" });
   $("#bBody").onclick = e => {
