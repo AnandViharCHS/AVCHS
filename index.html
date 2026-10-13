@@ -298,6 +298,7 @@ function tabsFor() {
     { id: "meetings", c: "var(--indigo)", label: T("सभा व ठराव", "सभा व प्रस्ताव", "Meetings") },
     { id: "docs", c: "var(--sage)", label: T("कागदपत्रे", "दस्तावेज़", "Documents") },
     { id: "bills", c: "var(--plum)", label: T("बिले", "बिल", "Bills") },
+    { id: "quotes", c: "var(--teal)", label: T("दरपत्रके", "कोटेशन", "Quotations") },
   ];
   if (isAdmin()) {
     t.push({ id: "flats", c: "var(--rose)", label: T("सदनिका नोंदवही", "फ्लैट रजिस्टर", "Flat register") });
@@ -956,10 +957,115 @@ function billForm(b) {
   $("#bForm").scrollIntoView({ behavior: "smooth" });
 }
 
+/* Quotations */
+const QCATS = { structural_audit: T("स्ट्रक्चरल ऑडिट", "स्ट्रक्चरल ऑडिट", "Structural audit"), painting: T("रंगकाम", "रंगाई", "Painting"), waterproofing: T("वॉटरप्रूफिंग", "वॉटरप्रूफिंग", "Waterproofing"), plumbing: T("प्लंबिंग", "प्लंबिंग", "Plumbing"), electrical: T("विद्युत काम", "बिजली कार्य", "Electrical"), civil_repair: T("दुरुस्ती / बांधकाम", "मरम्मत / निर्माण", "Civil repairs"), pump_tank: T("पंप / टाकी", "पंप / टंकी", "Pump / water tank"), pest_control: T("कीटक नियंत्रण", "कीट नियंत्रण", "Pest control"), tree_work: T("वृक्ष छाटणी", "वृक्ष छँटाई", "Tree pruning"), security_cleaning: T("सुरक्षा / सफाई", "सुरक्षा / सफ़ाई", "Security / cleaning"), legal_professional: T("कायदेशीर / व्यावसायिक सेवा", "कानूनी / व्यावसायिक सेवा", "Legal / professional"), other: T("इतर", "अन्य", "Other") };
+const QSTAT = { received: T("प्राप्त", "प्राप्त", "Received"), shortlisted: T("निवडक यादीत", "शॉर्टलिस्ट", "Shortlisted"), approved: T("मंजूर", "स्वीकृत", "Approved"), rejected: T("नामंजूर", "अस्वीकृत", "Rejected") };
+const QSTAT_CLS = { received: "draft", shortlisted: "pending", approved: "approved", rejected: "rejected" };
+const QCAT_TXT = k => { const d = document.createElement("div"); d.innerHTML = QCATS[k] || k; return (d.querySelector("." + LANG) || d).textContent; };
+const rupees = n => n == null ? "—" : "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+VIEWS.quotes = async () => {
+  const v = $("#view"); const admin = isAdmin();
+  v.innerHTML = `<div class="sechead"><h2>${T("दरपत्रके (कोटेशन)", "कोटेशन", "Quotations")}</h2>${admin ? `<button class="btn" type="button" id="qNew">${T("दरपत्रक अपलोड करा", "कोटेशन अपलोड करें", "Upload quotation")}</button>` : ""}</div>
+    <p class="small muted">${T("विविध कामांसाठी आलेली दरपत्रके कामानुसार एकत्र दाखवली आहेत, जेणेकरून तुलना करता येईल. सर्वात कमी रक्कम हिरव्या रंगात आहे.", "विभिन्न कार्यों के लिए आए कोटेशन कार्य के अनुसार एक साथ दिखाए गए हैं, ताकि तुलना की जा सके। सबसे कम राशि हरे रंग में है।", "Quotations received for each job are grouped together so they can be compared. The lowest amount is shown in green.")}</p>
+    <div id="qForm"></div>
+    <div class="row"><label class="small" style="display:flex;gap:.5rem;align-items:center">${T("कामाचा प्रकार", "कार्य का प्रकार", "Type of work")}<select id="qFilter" style="width:auto"><option value="">${L("सर्व", "सभी", "All")}</option>${Object.keys(QCATS).map(k => `<option value="${k}">${QCAT_TXT(k)}</option>`).join("")}</select></label></div>
+    <div id="qList" class="muted">…</div>`;
+  let data = [];
+  const load = async () => {
+    let q = sb.from("quotations").select("*"); if ($("#qFilter").value) q = q.eq("category", $("#qFilter").value);
+    const res = await q.order("quote_date", { ascending: false, nullsFirst: false });
+    if (res.error) { $("#qList").textContent = errText(res.error); return; }
+    data = res.data; const L2 = $("#qList"); L2.className = ""; L2.style.display = "grid"; L2.style.gap = "1rem";
+    if (!data.length) { L2.innerHTML = `<p class="muted">${T("अद्याप कोणतेही दरपत्रक अपलोड केलेले नाही.", "अभी कोई कोटेशन अपलोड नहीं।", "No quotations uploaded yet.")}</p>`; return; }
+    const groups = {};
+    data.forEach(r => { const k = r.category + "|" + r.job_title.trim().toLowerCase(); (groups[k] = groups[k] || []).push(r); });
+    L2.innerHTML = Object.values(groups).map(rows => {
+      rows.sort((a, b) => (a.amount ?? Infinity) - (b.amount ?? Infinity));
+      const amts = rows.map(r => r.amount).filter(a => a != null); const low = amts.length > 1 ? Math.min(...amts) : null;
+      return `<section class="panel"><div class="row" style="justify-content:space-between"><h3>${esc(rows[0].job_title)}</h3><span class="tag">${QCATS[rows[0].category] || esc(rows[0].category)}</span></div>
+        <div class="tablebox"><table><thead><tr><th>${T("पुरवठादार / ठेकेदार", "आपूर्तिकर्ता / ठेकेदार", "Vendor / contractor")}</th><th>${T("दिनांक", "दिनांक", "Date")}</th><th class="r">${T("रक्कम", "राशि", "Amount")}</th><th>${T("स्थिती", "स्थिति", "Status")}</th><th></th></tr></thead><tbody>${rows.map(r => `<tr>
+          <td><b>${esc(r.vendor_name)}</b>${r.vendor_phone ? `<br><span class="small muted num">${esc(r.vendor_phone)}</span>` : ""}${r.notes ? `<br><span class="small muted">${esc(r.notes)}</span>` : ""}${admin && r.visibility === "admins" ? `<br><span class="small muted">${L("फक्त समिती", "केवल समिति", "Committee only")}</span>` : ""}</td>
+          <td class="num small">${r.quote_date ? fmtDate(r.quote_date) : "—"}${r.valid_till ? `<br><span class="muted">${L("वैध", "वैध", "valid till")} ${fmtDate(r.valid_till)}</span>` : ""}</td>
+          <td class="r num" ${low != null && r.amount === low ? 'style="color:var(--sage);font-weight:700"' : ""}>${rupees(r.amount)}${r.amount != null ? `<br><span class="small muted">${r.gst_included ? L("GST सहित", "GST सहित", "incl. GST") : L("GST वगळून", "GST अलग", "excl. GST")}</span>` : ""}</td>
+          <td>${admin ? `<select data-qstat="${r.id}" style="width:auto">${Object.keys(QSTAT).map(k => `<option value="${k}" ${r.status === k ? "selected" : ""}>${(d => (d.innerHTML = QSTAT[k], (d.querySelector("." + LANG) || d).textContent))(document.createElement("div"))}</option>`).join("")}</select>` : `<span class="tag ${QSTAT_CLS[r.status] || ""}">${QSTAT[r.status] || esc(r.status)}</span>`}</td>
+          <td class="row">${r.storage_path ? `<button class="btn ghost" data-open="${esc(r.storage_path)}">${T("उघडा", "खोलें", "Open")}</button>` : ""}${admin ? `<button class="btn ghost" data-qedit="${r.id}">${T("बदला", "बदलें", "Edit")}</button><button class="btn warn" data-qdel="${r.id}">${T("हटवा", "हटाएँ", "Delete")}</button>` : ""}</td></tr>`).join("")}</tbody></table></div></section>`;
+    }).join("");
+  };
+  $("#qFilter").onchange = load;
+  $("#qList").addEventListener("click", e => { const o = e.target.closest("[data-open]"); if (o) openStored(o.dataset.open); });
+  if (admin) {
+    $("#qNew").onclick = () => quoteForm({}, data, load);
+    $("#qList").addEventListener("change", async e => {
+      const s = e.target.closest("[data-qstat]"); if (!s) return;
+      const { error } = await sb.from("quotations").update({ status: s.value, updated_at: new Date().toISOString() }).eq("id", s.dataset.qstat);
+      if (error) return toast(errText(error)); toast(L("स्थिती बदलली.", "स्थिति बदली।", "Status updated.")); load();
+    });
+    $("#qList").addEventListener("click", e => {
+      const ed = e.target.closest("[data-qedit]"), dl = e.target.closest("[data-qdel]");
+      if (ed) quoteForm(data.find(r => r.id == ed.dataset.qedit), data, load);
+      if (dl) confirmInline(dl, async () => {
+        const r = data.find(x => x.id == dl.dataset.qdel);
+        if (r && r.storage_path) await sb.storage.from("society-docs").remove([r.storage_path]);
+        const { error } = await sb.from("quotations").delete().eq("id", dl.dataset.qdel);
+        if (error) return toast(errText(error)); toast(L("हटवले.", "हटाया गया।", "Deleted.")); load();
+      });
+    });
+  }
+  load();
+};
+function quoteForm(q, all, after) {
+  const jobs = [...new Set(all.map(r => r.job_title))];
+  $("#qForm").innerHTML = `<form class="panel" id="qf" style="background:var(--teal-soft)"><h3>${q.id ? T("दरपत्रक बदला", "कोटेशन बदलें", "Edit quotation") : T("नवीन दरपत्रक", "नया कोटेशन", "New quotation")}</h3>
+    <div class="grid2">
+      <label>${T("कामाचा प्रकार", "कार्य का प्रकार", "Type of work")}<select id="qf_cat">${Object.keys(QCATS).map(k => `<option value="${k}" ${q.category === k ? "selected" : ""}>${QCAT_TXT(k)}</option>`).join("")}</select></label>
+      <label>${T("काम (उदा. इमारत रंगकाम 2026) *", "कार्य (जैसे इमारत रंगाई 2026) *", "Job (e.g. Building painting 2026) *")}<input id="qf_job" list="qJobs" required value="${esc(q.job_title)}"><datalist id="qJobs">${jobs.map(j => `<option value="${esc(j)}">`).join("")}</datalist></label>
+      <label>${T("पुरवठादार / ठेकेदाराचे नाव *", "आपूर्तिकर्ता / ठेकेदार का नाम *", "Vendor / contractor name *")}<input id="qf_vendor" required value="${esc(q.vendor_name)}"></label>
+      <label>${T("संपर्क क्रमांक", "संपर्क नंबर", "Contact number")}<input id="qf_phone" type="tel" value="${esc(q.vendor_phone)}"></label>
+      <label>${T("दरपत्रक दिनांक", "कोटेशन दिनांक", "Quotation date")}<input id="qf_date" type="date" value="${q.quote_date || new Date().toISOString().slice(0, 10)}"></label>
+      <label>${T("वैध (पर्यंत)", "वैध (तक)", "Valid till")}<input id="qf_valid" type="date" value="${q.valid_till || ""}"></label>
+      <label>${T("एकूण रक्कम ₹", "कुल राशि ₹", "Total amount ₹")}<input id="qf_amt" type="number" step="any" min="0" value="${q.amount ?? ""}"></label>
+      <label>${T("स्थिती", "स्थिति", "Status")}<select id="qf_stat">${Object.keys(QSTAT).map(k => `<option value="${k}" ${(q.status || "received") === k ? "selected" : ""}>${k}</option>`).join("")}</select></label>
+      <label>${T("कोणाला दिसेल", "किसे दिखेगा", "Visible to")}<select id="qf_vis"><option value="members" ${q.visibility !== "admins" ? "selected" : ""}>${L("सर्व सभासद", "सभी सदस्य", "All members")}</option><option value="admins" ${q.visibility === "admins" ? "selected" : ""}>${L("फक्त समिती", "केवल समिति", "Committee only")}</option></select></label>
+    </div>
+    <label class="check"><input type="checkbox" id="qf_gst" ${q.gst_included ? "checked" : ""}> ${T("रकमेत GST समाविष्ट आहे", "राशि में GST शामिल है", "Amount includes GST")}</label>
+    <label>${T("टीप (कामाची व्याप्ती, अटी इ.)", "टिप्पणी (कार्य का दायरा, शर्तें आदि)", "Notes (scope of work, terms, etc.)")}<textarea id="qf_notes">${esc(q.notes)}</textarea></label>
+    <label>${q.storage_path ? T("फाइल बदला (ऐच्छिक)", "फ़ाइल बदलें (वैकल्पिक)", "Replace file (optional)") : T("दरपत्रकाची फाइल (PDF / फोटो / Excel / Word, कमाल 50 MB)", "कोटेशन फ़ाइल (PDF / फोटो / Excel / Word, अधिकतम 50 MB)", "Quotation file (PDF / photo / Excel / Word, max 50 MB)")}<input type="file" id="qf_file" accept="${DOC_ACCEPT}"></label>
+    <div id="qfProg" class="small muted"></div>
+    <div class="row"><button class="btn" type="submit" id="qfGo">${T("जतन करा", "सहेजें", "Save")}</button><button class="btn ghost" type="button" id="qfC">${T("रद्द", "रद्द", "Cancel")}</button></div></form>`;
+  $("#qfC").onclick = () => $("#qForm").innerHTML = "";
+  $("#qf").onsubmit = async e => {
+    e.preventDefault();
+    const file = $("#qf_file").files[0], vis = $("#qf_vis").value;
+    if (!q.id && !file) return toast(L("दरपत्रकाची फाइल निवडा.", "कोटेशन फ़ाइल चुनें।", "Choose the quotation file."));
+    if (file && file.size > MAXB) return toast(L("फाइल 50 MB पेक्षा मोठी आहे.", "फ़ाइल 50 MB से बड़ी है।", "File is larger than 50 MB."));
+    const row = { category: $("#qf_cat").value, job_title: $("#qf_job").value.trim(), vendor_name: $("#qf_vendor").value.trim(), vendor_phone: $("#qf_phone").value.trim() || null,
+      quote_date: $("#qf_date").value || null, valid_till: $("#qf_valid").value || null, amount: $("#qf_amt").value === "" ? null : Number($("#qf_amt").value),
+      gst_included: $("#qf_gst").checked, status: $("#qf_stat").value, visibility: vis, notes: $("#qf_notes").value.trim() || null, updated_at: new Date().toISOString() };
+    $("#qfGo").disabled = true; $("#qfProg").textContent = file ? L("अपलोड होत आहे…", "अपलोड हो रहा है…", "Uploading…") : "";
+    try {
+      let oldPath = null;
+      if (file || (q.id && q.visibility !== vis && q.storage_path)) {
+        const src = file || (await sb.storage.from("society-docs").download(q.storage_path)).data;
+        const name = file ? file.name : q.storage_path.split("/").pop();
+        const path = `${vis}/quotations/${Date.now()}_${safeName(name)}`;
+        const ct = file ? (file.type || (/\.xlsx$/i.test(name) ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : /\.docx$/i.test(name) ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "application/pdf")) : src.type;
+        const up = await sb.storage.from("society-docs").upload(path, src, { contentType: ct });
+        if (up.error) throw up.error;
+        oldPath = q.storage_path || null; row.storage_path = path; row.file_name = name;
+      }
+      const { error } = q.id ? await sb.from("quotations").update(row).eq("id", q.id) : await sb.from("quotations").insert(row);
+      if (error) { if (row.storage_path) await sb.storage.from("society-docs").remove([row.storage_path]); throw error; }
+      if (oldPath) await sb.storage.from("society-docs").remove([oldPath]);
+      toast(L("दरपत्रक जतन झाले.", "कोटेशन सहेजा गया।", "Quotation saved.")); $("#qForm").innerHTML = ""; after();
+    } catch (er) { toast(errText(er)); $("#qfGo").disabled = false; $("#qfProg").textContent = ""; }
+  };
+  $("#qForm").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 /* Export (admin) */
 async function exportAll() {
   const out = {};
-  for (const t of ["flats", "notices", "noc_requests", "meetings", "resolutions", "ownership_history", "issued_letters", "documents", "bills", "activity_log"]) {
+  for (const t of ["flats", "notices", "noc_requests", "meetings", "resolutions", "ownership_history", "issued_letters", "documents", "bills", "quotations", "activity_log"]) {
     const { data, error } = await sb.from(t).select("*");
     if (error) return toast(errText(error)); out[t] = data;
   }
