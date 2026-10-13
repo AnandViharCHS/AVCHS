@@ -977,6 +977,9 @@ VIEWS.quotes = async () => {
     if (res.error) { $("#qList").textContent = errText(res.error); return; }
     data = res.data; const L2 = $("#qList"); L2.className = ""; L2.style.display = "grid"; L2.style.gap = "1rem";
     if (!data.length) { L2.innerHTML = `<p class="muted">${T("अद्याप कोणतेही दरपत्रक अपलोड केलेले नाही.", "अभी कोई कोटेशन अपलोड नहीं।", "No quotations uploaded yet.")}</p>`; return; }
+    const dres = await sb.from("quotation_docs").select("*").in("quotation_id", data.map(r => r.id)).order("doc_date", { nullsFirst: false });
+    if (dres.error) { L2.textContent = errText(dres.error); return; }
+    QDOCS = {}; dres.data.forEach(d => (QDOCS[d.quotation_id] = QDOCS[d.quotation_id] || []).push(d));
     const groups = {};
     data.forEach(r => { const k = r.category + "|" + r.job_title.trim().toLowerCase(); (groups[k] = groups[k] || []).push(r); });
     L2.innerHTML = Object.values(groups).map(rows => {
@@ -988,7 +991,7 @@ VIEWS.quotes = async () => {
           <td class="num small">${r.quote_date ? fmtDate(r.quote_date) : "—"}${r.valid_till ? `<br><span class="muted">${L("वैध", "वैध", "valid till")} ${fmtDate(r.valid_till)}</span>` : ""}</td>
           <td class="r num" ${low != null && r.amount === low ? 'style="color:var(--sage);font-weight:700"' : ""}>${rupees(r.amount)}${r.amount != null ? `<br><span class="small muted">${r.gst_included ? L("GST सहित", "GST सहित", "incl. GST") : L("GST वगळून", "GST अलग", "excl. GST")}</span>` : ""}</td>
           <td>${admin ? `<select data-qstat="${r.id}" style="width:auto">${Object.keys(QSTAT).map(k => `<option value="${k}" ${r.status === k ? "selected" : ""}>${(d => (d.innerHTML = QSTAT[k], (d.querySelector("." + LANG) || d).textContent))(document.createElement("div"))}</option>`).join("")}</select>` : `<span class="tag ${QSTAT_CLS[r.status] || ""}">${QSTAT[r.status] || esc(r.status)}</span>`}</td>
-          <td class="row">${r.storage_path ? `<button class="btn ghost" data-open="${esc(r.storage_path)}">${T("उघडा", "खोलें", "Open")}</button>` : ""}${admin ? `<button class="btn ghost" data-qedit="${r.id}">${T("बदला", "बदलें", "Edit")}</button><button class="btn warn" data-qdel="${r.id}">${T("हटवा", "हटाएँ", "Delete")}</button>` : ""}</td></tr>`).join("")}</tbody></table></div></section>`;
+          <td class="row">${r.storage_path ? `<button class="btn ghost" data-open="${esc(r.storage_path)}">${T("उघडा", "खोलें", "Open")}</button>` : ""}${admin ? `<button class="btn ghost" data-qedit="${r.id}">${T("बदला", "बदलें", "Edit")}</button><button class="btn warn" data-qdel="${r.id}">${T("हटवा", "हटाएँ", "Delete")}</button>` : ""}</td></tr>${qDocsRow(r, admin)}`).join("")}</tbody></table></div></section>`;
     }).join("");
   };
   $("#qFilter").onchange = load;
@@ -1002,10 +1005,19 @@ VIEWS.quotes = async () => {
     });
     $("#qList").addEventListener("click", e => {
       const ed = e.target.closest("[data-qedit]"), dl = e.target.closest("[data-qdel]");
+      const addD = e.target.closest("[data-qdadd]"), delD = e.target.closest("[data-qddel]");
+      if (addD) qDocForm(addD, data.find(r => r.id == addD.dataset.qid), addD.dataset.qdadd, load);
+      if (delD) confirmInline(delD, async () => {
+        const d = (QDOCS[delD.dataset.qid] || []).find(x => x.id == delD.dataset.qddel);
+        if (d && d.storage_path) await sb.storage.from("society-docs").remove([d.storage_path]);
+        const { error } = await sb.from("quotation_docs").delete().eq("id", delD.dataset.qddel);
+        if (error) return toast(errText(error)); toast(L("हटवले.", "हटाया गया।", "Deleted.")); load();
+      });
       if (ed) quoteForm(data.find(r => r.id == ed.dataset.qedit), data, load);
       if (dl) confirmInline(dl, async () => {
         const r = data.find(x => x.id == dl.dataset.qdel);
-        if (r && r.storage_path) await sb.storage.from("society-docs").remove([r.storage_path]);
+        const paths = [r && r.storage_path, ...(QDOCS[dl.dataset.qdel] || []).map(d => d.storage_path)].filter(Boolean);
+        if (paths.length) await sb.storage.from("society-docs").remove(paths);
         const { error } = await sb.from("quotations").delete().eq("id", dl.dataset.qdel);
         if (error) return toast(errText(error)); toast(L("हटवले.", "हटाया गया।", "Deleted.")); load();
       });
@@ -1013,6 +1025,53 @@ VIEWS.quotes = async () => {
   }
   load();
 };
+/* Tax invoices & receipts attached to a quotation */
+let QDOCS = {};
+const QDTYPE = { invoice: T("कर बीजक", "टैक्स इनवॉइस", "Tax invoice"), receipt: T("पावती", "रसीद", "Receipt") };
+function qDocsRow(r, admin) {
+  const docs = QDOCS[r.id] || [];
+  if (!docs.length && !admin) return "";
+  const sum = t => docs.filter(d => d.doc_type === t).reduce((s, d) => s + (+d.amount || 0), 0);
+  const inv = sum("invoice"), paid = sum("receipt");
+  return `<tr><td colspan="5" style="background:var(--bg);padding-top:.35rem">
+    <div style="display:grid;gap:.35rem">
+      ${docs.map(d => `<div class="row small"><span class="tag ${d.doc_type === "receipt" ? "approved" : "pending"}">${QDTYPE[d.doc_type]}</span>
+        <span>${d.doc_no ? esc(d.doc_no) + " · " : ""}${d.doc_date ? fmtDate(d.doc_date) : ""}</span><b class="num">${rupees(d.amount)}</b>
+        ${d.payment_mode ? `<span class="muted">${esc(d.payment_mode)}${d.payment_ref ? " · " + esc(d.payment_ref) : ""}</span>` : ""}
+        ${d.storage_path ? `<button class="btn ghost" style="padding:.1rem .6rem" data-open="${esc(d.storage_path)}">${T("उघडा", "खोलें", "Open")}</button>` : ""}
+        ${admin ? `<button class="btn warn" style="padding:.1rem .6rem" data-qddel="${d.id}" data-qid="${r.id}">${T("हटवा", "हटाएँ", "Delete")}</button>` : ""}</div>`).join("")}
+      ${docs.length ? `<div class="small muted num">${L("एकूण बीजक", "कुल इनवॉइस", "Invoiced")}: <b>${rupees(inv)}</b> · ${L("भरले", "भुगतान", "Paid")}: <b>${rupees(paid)}</b>${inv ? ` · ${L("बाकी", "शेष", "Balance")}: <b style="color:${inv - paid > 0 ? "var(--rose)" : "var(--sage)"}">${rupees(inv - paid)}</b>` : ""}</div>` : ""}
+      ${admin ? `<div class="row"><button class="btn ghost" style="padding:.15rem .7rem" data-qdadd="invoice" data-qid="${r.id}">+ ${T("कर बीजक", "टैक्स इनवॉइस", "Tax invoice")}</button><button class="btn ghost" style="padding:.15rem .7rem" data-qdadd="receipt" data-qid="${r.id}">+ ${T("पावती", "रसीद", "Receipt")}</button></div><div class="qdform"></div>` : ""}
+    </div></td></tr>`;
+}
+function qDocForm(btn, q, type, after) {
+  const box = btn.closest("td").querySelector(".qdform");
+  const rec = type === "receipt";
+  box.innerHTML = `<form class="panel" style="background:var(--surface)"><h3>${QDTYPE[type]} · ${esc(q.vendor_name)}</h3><div class="grid2">
+    <label>${rec ? T("पावती क्र.", "रसीद क्र.", "Receipt no.") : T("बीजक क्र.", "इनवॉइस क्र.", "Invoice no.")}<input name="no"></label>
+    <label>${T("दिनांक", "दिनांक", "Date")}<input name="dt" type="date" value="${new Date().toISOString().slice(0, 10)}"></label>
+    <label>${rec ? T("भरलेली रक्कम ₹", "भुगतान राशि ₹", "Amount paid ₹") : T("बीजक रक्कम ₹ (GST सहित)", "इनवॉइस राशि ₹ (GST सहित)", "Invoice amount ₹ (incl. GST)")}<input name="amt" type="number" step="any" min="0" required></label>
+    ${rec ? `<label>${T("भरणा पद्धत", "भुगतान माध्यम", "Payment mode")}<select name="mode"><option>Cheque</option><option>NEFT / RTGS</option><option>UPI</option><option>Cash</option></select></label>
+    <label>${T("धनादेश / व्यवहार क्र.", "चेक / लेनदेन क्र.", "Cheque / transaction no.")}<input name="ref"></label>` : `<label>${T("GST क्रमांक (GSTIN)", "GST नंबर (GSTIN)", "Vendor GSTIN")}<input name="ref" maxlength="15" style="text-transform:uppercase"></label>`}
+    </div>
+    <label>${T("फाइल (PDF / फोटो)", "फ़ाइल (PDF / फोटो)", "File (PDF / photo)")}<input name="file" type="file" accept="${DOC_ACCEPT}" required></label>
+    <div class="row"><button class="btn" type="submit">${T("जतन करा", "सहेजें", "Save")}</button><button class="btn ghost" type="button" data-cancel>${T("रद्द", "रद्द", "Cancel")}</button></div></form>`;
+  const f = box.querySelector("form");
+  f.querySelector("[data-cancel]").onclick = () => box.innerHTML = "";
+  f.onsubmit = async e => {
+    e.preventDefault(); e.stopPropagation();
+    const file = f.file.files[0]; if (!file) return toast(L("फाइल निवडा.", "फ़ाइल चुनें।", "Choose a file."));
+    if (file.size > MAXB) return toast(L("फाइल 50 MB पेक्षा मोठी आहे.", "फ़ाइल 50 MB से बड़ी है।", "File is larger than 50 MB."));
+    const sbtn = f.querySelector("[type=submit]"); sbtn.disabled = true;
+    const path = `${q.visibility}/quotations/${type}s/${Date.now()}_${safeName(file.name)}`;
+    const up = await sb.storage.from("society-docs").upload(path, file, { contentType: file.type || "application/pdf" });
+    if (up.error) { sbtn.disabled = false; return toast(errText(up.error)); }
+    const { error } = await sb.from("quotation_docs").insert({ quotation_id: q.id, doc_type: type, doc_no: f.no.value.trim() || null, doc_date: f.dt.value || null,
+      amount: Number(f.amt.value), payment_mode: rec ? f.mode.value : null, payment_ref: f.ref.value.trim().toUpperCase() || null, storage_path: path, file_name: file.name });
+    if (error) { await sb.storage.from("society-docs").remove([path]); sbtn.disabled = false; return toast(errText(error)); }
+    toast(L("जतन झाले.", "सहेजा गया।", "Saved.")); after();
+  };
+}
 function quoteForm(q, all, after) {
   const jobs = [...new Set(all.map(r => r.job_title))];
   $("#qForm").innerHTML = `<form class="panel" id="qf" style="background:var(--teal-soft)"><h3>${q.id ? T("दरपत्रक बदला", "कोटेशन बदलें", "Edit quotation") : T("नवीन दरपत्रक", "नया कोटेशन", "New quotation")}</h3>
@@ -1065,7 +1124,7 @@ function quoteForm(q, all, after) {
 /* Export (admin) */
 async function exportAll() {
   const out = {};
-  for (const t of ["flats", "notices", "noc_requests", "meetings", "resolutions", "ownership_history", "issued_letters", "documents", "bills", "quotations", "activity_log"]) {
+  for (const t of ["flats", "notices", "noc_requests", "meetings", "resolutions", "ownership_history", "issued_letters", "documents", "bills", "quotations", "quotation_docs", "activity_log"]) {
     const { data, error } = await sb.from(t).select("*");
     if (error) return toast(errText(error)); out[t] = data;
   }
